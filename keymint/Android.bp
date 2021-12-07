@@ -63,6 +63,7 @@ cc_library {
     ],
     cflags: [
         "-DHAL_TO_HAL_TRANSPORT",
+        "-DINTERVAL_TIMER",
     ],
     export_include_dirs: [
         "transport/include"
