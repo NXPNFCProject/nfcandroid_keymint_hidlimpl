@@ -6,6 +6,15 @@
 | :-------------: |:-------------:| 
 | nfcandroid_keymint_hidlimpl   |  git clone https://github.com/NXPNFCProject/nfcandroid_keymint_hidlimpl.git |
 
+#### Supported Version on "br_android_ncihalx_comm_13" branch
+| Android Version        | NXP Release          | NXP Tag  |
+| :-------------: |:---------------------:| :-----:|
+
+
+
+
+
+
 
 #### Supported Version on "br_android_ncihalx_comm_12" branch
 | Android Version        | NXP Release          | NXP Tag  |
