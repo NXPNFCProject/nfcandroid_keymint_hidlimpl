@@ -54,6 +54,7 @@ cc_library {
         "android.hardware.security.sharedsecret-V1-ndk",
         "lib_android_keymaster_keymint_utils",
     	"libbase",
+        "libbinder",
         "libcppbor_external",
         "libkeymaster_portable",
         "libkeymaster_messages",

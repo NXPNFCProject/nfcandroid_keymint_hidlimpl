@@ -64,6 +64,12 @@ void omapiSessionTimerFunc(union sigval arg){
      if(obj != nullptr)
        obj->closeSession();
 }
+
+void OmapiTransport::BinderDiedCallback(void *cookie) {
+  LOG(ERROR) << "Received binder died. OMAPI Service died";
+  auto thiz = static_cast<OmapiTransport *>(cookie);
+  thiz->closeConnection();
+}
 #endif
 
 bool OmapiTransport::initialize() {
@@ -84,6 +90,11 @@ bool OmapiTransport::initialize() {
         LOG(ERROR) << "Failed to start omapiSeService null";
         return false;
     }
+
+#ifdef NXP_EXTNS
+    AIBinder_linkToDeath(omapiSeService->asBinder().get(),
+                         mDeathRecipient.get(), this);
+#endif
 
     // reset readers, clear readers if already existing
     if (mVSReaders.size() > 0) {
@@ -263,6 +274,15 @@ bool OmapiTransport::closeConnection() {
             mVSReaders.clear();
         }
     }
+#ifdef NXP_EXTNS
+    if (omapiSeService != nullptr) {
+      AIBinder_unlinkToDeath(omapiSeService->asBinder().get(),
+                             mDeathRecipient.get(), this);
+      omapiSeService = nullptr;
+    }
+    session = nullptr;
+    channel = nullptr;
+#endif
     return true;
 }
 
