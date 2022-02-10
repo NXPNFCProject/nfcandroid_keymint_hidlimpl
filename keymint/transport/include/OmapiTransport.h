@@ -122,6 +122,14 @@ private:
             std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse);
     void prepareErrorRepsponse(std::vector<uint8_t>& resp);
 #endif
+#ifdef INTERVAL_TIMER
+    inline uint16_t getApduStatus(std::vector<uint8_t> &inputData) {
+      // Last two bytes are the status SW0SW1
+      uint8_t SW0 = inputData.at(inputData.size() - 2);
+      uint8_t SW1 = inputData.at(inputData.size() - 1);
+      return (SW0 << 8 | SW1);
+    }
+#endif
 };
 }  // namespace keymint::javacard
 #endif

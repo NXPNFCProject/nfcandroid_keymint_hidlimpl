@@ -52,6 +52,7 @@
 #include <IntervalTimer.h>
 
 #define UNUSED_V(a) a=a
+#define RESP_CHANNEL_NOT_AVAILABLE 0x6881
 
 namespace keymint::javacard {
 
@@ -388,7 +389,13 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         LOG(ERROR) << "transmit error: " << res.getMessage();
         return false;
     }
-
+#ifdef INTERVAL_TIMER
+    if ((transmitResponse.size() >= 2) &&
+        (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE)) {
+      LOG(ERROR) << " SW is not ok. SW = " << getApduStatus(transmitResponse);
+      if (channel != nullptr) channel->close();
+    }
+#endif
     return true;
 }
 
