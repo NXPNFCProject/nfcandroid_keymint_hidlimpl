@@ -49,7 +49,8 @@ class ITransport {
   public:
     virtual ~ITransport() {}
 
-    ITransport(__attribute__((unused)) const std::vector<uint8_t>& mAppletAID) {};
+    explicit ITransport(__attribute__((unused))
+                        const std::vector<uint8_t> &mAppletAID){};
 
     /**
      * Opens connection.
