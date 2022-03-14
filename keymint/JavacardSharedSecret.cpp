@@ -21,7 +21,7 @@
 #include <android-base/logging.h>
 
 #include "JavacardSharedSecret.h"
-#include <KeyMintUtils.h>
+#include <JavacardKeyMintUtils.h>
 
 #define MAX_SHARED_SECRET_RETRY_COUNT 120
 
