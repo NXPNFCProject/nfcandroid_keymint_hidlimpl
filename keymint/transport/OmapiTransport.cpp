@@ -372,13 +372,16 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     res = channel->transmit(apdu, &transmitResponse);
 
 #ifdef INTERVAL_TIMER
-     int timeout = mSBAccessController.getSessionTimeout();
-     if(timeout == 0) {
-       closeSession(); //close immediately
-     } else {
-       LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-       mTimer.set(mSBAccessController.getSessionTimeout(), this, omapiSessionTimerFunc);
-     }
+    int timeout = mSBAccessController.getSessionTimeout();
+    if (timeout == 0 || !res.isOk() ||
+        ((transmitResponse.size() >= 2) &&
+         (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
+      closeSession(); // close immediately
+    } else {
+      LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
+      mTimer.set(mSBAccessController.getSessionTimeout(), this,
+                 omapiSessionTimerFunc);
+    }
 #else
      closeSession();
 #endif
@@ -389,13 +392,6 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         LOG(ERROR) << "transmit error: " << res.getMessage();
         return false;
     }
-#ifdef INTERVAL_TIMER
-    if ((transmitResponse.size() >= 2) &&
-        (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE)) {
-      LOG(ERROR) << " SW is not ok. SW = " << getApduStatus(transmitResponse);
-      if (channel != nullptr) channel->close();
-    }
-#endif
     return true;
 }
 
