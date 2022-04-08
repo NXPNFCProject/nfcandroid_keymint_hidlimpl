@@ -368,7 +368,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         prepareErrorRepsponse(transmitResponse);
         return false;
     }
-
+    LOGD_OMAPI("constructed apdu: " << apdu);
     res = channel->transmit(apdu, &transmitResponse);
 
 #ifdef INTERVAL_TIMER
@@ -404,6 +404,7 @@ void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
 void OmapiTransport::closeSession() {
     if (channel != nullptr) channel->close();
     if (session != nullptr) session->close();
+    LOGD_OMAPI("Channel closed");
 }
 #endif
 
