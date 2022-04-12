@@ -388,6 +388,19 @@ ScopedAStatus JavacardKeyMintDevice::getKeyCharacteristics(
     return ScopedAStatus::ok();
 }
 
+ScopedAStatus JavacardKeyMintDevice::getRootOfTrustChallenge(__attribute__((unused)) std::array<uint8_t, 16>* _aidl_return) {
+    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
+ScopedAStatus JavacardKeyMintDevice::getRootOfTrust(__attribute__((unused)) const std::array<uint8_t, 16>& in_challenge,
+                                  __attribute__((unused)) std::vector<uint8_t>* _aidl_return) {
+    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
+ScopedAStatus JavacardKeyMintDevice::sendRootOfTrust(__attribute__((unused)) const std::vector<uint8_t>& in_rootOfTrust) {
+    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
 keymaster_error_t
 JavacardKeyMintDevice::parseWrappedKey(const vector<uint8_t>& wrappedKeyData,
                                        std::vector<uint8_t>& iv, std::vector<uint8_t>& transitKey,

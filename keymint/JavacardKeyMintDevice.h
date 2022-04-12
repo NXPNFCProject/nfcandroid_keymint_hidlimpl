@@ -105,6 +105,13 @@ class JavacardKeyMintDevice : public BnKeyMintDevice {
     ScopedAStatus convertStorageKeyToEphemeral(const std::vector<uint8_t>& storageKeyBlob,
                                                std::vector<uint8_t>* ephemeralKeyBlob) override;
 
+    ScopedAStatus getRootOfTrustChallenge(std::array<uint8_t, 16>* _aidl_return) override;
+
+    ScopedAStatus getRootOfTrust(const std::array<uint8_t, 16>& in_challenge,
+                                  std::vector<uint8_t>* _aidl_return) override;
+
+    ScopedAStatus sendRootOfTrust(const std::vector<uint8_t>& in_rootOfTrust) override;
+
   private:
     keymaster_error_t parseWrappedKey(const vector<uint8_t>& wrappedKeyData,
                                       std::vector<uint8_t>& iv, std::vector<uint8_t>& transitKey,
