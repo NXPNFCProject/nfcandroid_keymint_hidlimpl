@@ -13,7 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/******************************************************************************
+*
+*  The original Work has been changed by NXP.
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*  http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*
+*  Copyright 2022 NXP
+*
+******************************************************************************/
 #pragma once
 
 #include "CborConverter.h"
@@ -70,7 +88,10 @@ enum class Instruction {
     INS_UPDATE_EEK_CHAIN_CMD = KEYMINT_CMD_APDU_START + 31,
     INS_UPDATE_CHALLENGE_CMD = KEYMINT_CMD_APDU_START + 32,
     INS_FINISH_SEND_DATA_CMD = KEYMINT_CMD_APDU_START + 33,
-  INS_GET_RESPONSE_CMD = KEYMINT_CMD_APDU_START + 34,
+    INS_GET_RESPONSE_CMD = KEYMINT_CMD_APDU_START + 34,
+    INS_GET_ROT_CHALLENGE_CMD = KEYMINT_CMD_APDU_START + 0xB0,
+    INS_GET_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 0xB1,
+    INS_SEND_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 0xB2,
 };
 
 class JavacardSecureElement {

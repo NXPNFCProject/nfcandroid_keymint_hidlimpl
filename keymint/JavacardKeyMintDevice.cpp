@@ -388,17 +388,35 @@ ScopedAStatus JavacardKeyMintDevice::getKeyCharacteristics(
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus JavacardKeyMintDevice::getRootOfTrustChallenge(__attribute__((unused)) std::array<uint8_t, 16>* _aidl_return) {
-    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+ScopedAStatus JavacardKeyMintDevice::getRootOfTrustChallenge(std::array<uint8_t, 16>* challenge) {
+    auto [item, err] = card_->sendRequest(Instruction::INS_GET_ROT_CHALLENGE_CMD);
+    if (err != KM_ERROR_OK) {
+        LOG(ERROR) << "Error in getRootOfTrustChallenge.";
+        return km_utils::kmError2ScopedAStatus(err);
+    }
+    std::vector<uint8_t> rotChallenge;
+    if (!cbor_.getBinaryArray(item, 1, rotChallenge) ||
+        (rotChallenge.size() != 16)) {
+        LOG(ERROR) << "Error in RotChallenge Data";
+        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+    }
+    std::copy_n(rotChallenge.begin(), 16, challenge->begin());
+    return ScopedAStatus::ok();
 }
 
 ScopedAStatus JavacardKeyMintDevice::getRootOfTrust(__attribute__((unused)) const std::array<uint8_t, 16>& in_challenge,
-                                  __attribute__((unused)) std::vector<uint8_t>* _aidl_return) {
+                                  __attribute__((unused)) std::vector<uint8_t>* rootOfTrust) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
-ScopedAStatus JavacardKeyMintDevice::sendRootOfTrust(__attribute__((unused)) const std::vector<uint8_t>& in_rootOfTrust) {
-    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+ScopedAStatus JavacardKeyMintDevice::sendRootOfTrust(const std::vector<uint8_t>& in_rootOfTrust) {
+    std::vector<uint8_t> rootOfTrust(in_rootOfTrust);
+    auto [item, err] = card_->sendRequest(Instruction::INS_SEND_ROT_DATA_CMD, rootOfTrust);
+    if (err != KM_ERROR_OK) {
+        LOG(ERROR) << "Error in sendRootOfTrust.";
+        return km_utils::kmError2ScopedAStatus(err);
+    }
+    return ScopedAStatus::ok();
 }
 
 keymaster_error_t
