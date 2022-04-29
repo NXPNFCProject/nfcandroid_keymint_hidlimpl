@@ -53,7 +53,9 @@
 
 #define UNUSED_V(a) a=a
 #define RESP_CHANNEL_NOT_AVAILABLE 0x6881
-
+#ifdef NXP_EXTNS
+#define DEFAULT_SESSION_TIMEOUT_MSEC 1000
+#endif
 namespace keymint::javacard {
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
@@ -372,15 +374,16 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     res = channel->transmit(apdu, &transmitResponse);
 
 #ifdef INTERVAL_TIMER
-    int timeout = mSBAccessController.getSessionTimeout();
+    int timeout = ((kWeaverAID == mSelectableAid)
+                       ? DEFAULT_SESSION_TIMEOUT_MSEC
+                       : mSBAccessController.getSessionTimeout());
     if (timeout == 0 || !res.isOk() ||
         ((transmitResponse.size() >= 2) &&
          (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
       closeSession(); // close immediately
     } else {
       LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-      mTimer.set(mSBAccessController.getSessionTimeout(), this,
-                 omapiSessionTimerFunc);
+      mTimer.set(timeout, this, omapiSessionTimerFunc);
     }
 #else
      closeSession();

@@ -107,7 +107,10 @@ private:
     std::string const ESE_READER_PREFIX = "eSE";
     constexpr static const char omapiServiceName[] =
             "android.se.omapi.ISecureElementService/default";
-
+#ifdef NXP_EXTNS
+    /* Applet ID Weaver */
+    const std::vector<uint8_t> kWeaverAID = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x10, 0x10};
+#endif
     bool initialize();
     bool internalTransmitApdu(
             std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
