@@ -23,7 +23,10 @@
 #include "JavacardSharedSecret.h"
 #include <JavacardKeyMintUtils.h>
 
-#define MAX_SHARED_SECRET_RETRY_COUNT 120
+/* 1 sec delay till OMAPI service initialized (~ 30 to 40 secs)
+ * 20 retry as per transport layer retry logic.
+ * Each retry logic takes 11~12 secs*/
+#define MAX_SHARED_SECRET_RETRY_COUNT 60
 
 namespace aidl::android::hardware::security::sharedsecret {
 using namespace ::keymint::javacard;

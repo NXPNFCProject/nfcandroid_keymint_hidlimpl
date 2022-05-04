@@ -127,6 +127,7 @@ public:
             std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
             std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse);
     void prepareErrorRepsponse(std::vector<uint8_t>& resp);
+    bool openChannelToApplet();
 #endif
 #ifdef INTERVAL_TIMER
     inline uint16_t getApduStatus(std::vector<uint8_t> &inputData) {
