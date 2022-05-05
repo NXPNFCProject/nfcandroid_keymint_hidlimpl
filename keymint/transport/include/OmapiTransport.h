@@ -92,8 +92,11 @@ public:
      * broken.
      */
     bool isConnected() override;
-    void closeSession();
-private:
+#ifdef NXP_EXTNS
+    void closeChannel();
+#endif
+
+  private:
     //AppletConnection mAppletConnection;
     SBAccessController mSBAccessController;
     IntervalTimer mTimer;

@@ -65,7 +65,7 @@ void omapiSessionTimerFunc(union sigval arg){
      LOG(INFO) << "Session Timer expired !!";
      OmapiTransport *obj = (OmapiTransport*)arg.sival_ptr;
      if(obj != nullptr)
-       obj->closeSession();
+       obj->closeChannel();
 }
 
 void OmapiTransport::BinderDiedCallback(void *cookie) {
@@ -380,13 +380,13 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     if (timeout == 0 || !res.isOk() ||
         ((transmitResponse.size() >= 2) &&
          (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
-      closeSession(); // close immediately
+      closeChannel(); // close immediately
     } else {
       LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
       mTimer.set(timeout, this, omapiSessionTimerFunc);
     }
 #else
-     closeSession();
+    closeChannel();
 #endif
 
     LOGD_OMAPI("STATUS OF TRNSMIT: " << res.getExceptionCode() << " Message: "
@@ -404,10 +404,9 @@ void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
         resp.push_back(0xFF);
 }
 
-void OmapiTransport::closeSession() {
-    if (channel != nullptr) channel->close();
-    if (session != nullptr) session->close();
-    LOGD_OMAPI("Channel closed");
+void OmapiTransport::closeChannel() {
+  if (channel != nullptr)
+    channel->close();
 }
 #endif
 
