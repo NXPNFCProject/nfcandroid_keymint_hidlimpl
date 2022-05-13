@@ -407,6 +407,7 @@ void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
 void OmapiTransport::closeChannel() {
   if (channel != nullptr)
     channel->close();
+    LOGD_OMAPI("Channel closed");
 }
 #endif
 
