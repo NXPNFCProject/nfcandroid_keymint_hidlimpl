@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021 NXP
+ ** Copyright 2020-2022 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -56,6 +56,8 @@ namespace keymint::javacard {
 
 static bool isStrongBox = false; // true when linked with StrongBox HAL process
 const std::vector<uint8_t> kStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+const std::vector<uint8_t> kWeaverAppletAID = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x10, 0x10};
+const int kWeaverSessionTimeOut = 1000; // 1 sec timeout for weaver session
 
 class SecureElementCallback : public ISecureElementHalCallback {
  public:
@@ -213,7 +215,8 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
 }
 
 int AppletConnection::getSessionTimeout() {
-    return mSBAccessController.getSessionTimeout();
+    return (kAppletAID == kWeaverAppletAID) ? kWeaverSessionTimeOut
+                                            : mSBAccessController.getSessionTimeout();
 }
 
 bool AppletConnection::close() {
