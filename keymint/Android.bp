@@ -64,6 +64,7 @@ cc_library {
         "libcutils",
         "libjc_keymint_transport",
         "libbinder_ndk",
+        "libmemunreachable",
     ],
     export_include_dirs: [
         ".",

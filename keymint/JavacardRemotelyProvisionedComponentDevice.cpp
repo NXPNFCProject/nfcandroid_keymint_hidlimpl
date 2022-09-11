@@ -34,12 +34,13 @@
  *********************************************************************************/
 
 #define LOG_TAG "javacard.keymint.device.rkp.strongbox-impl"
-#include <JavacardRemotelyProvisionedComponentDevice.h>
-#include <android-base/logging.h>
 #include <JavacardKeyMintUtils.h>
+#include <JavacardRemotelyProvisionedComponentDevice.h>
 #include <aidl/android/hardware/security/keymint/MacedPublicKey.h>
+#include <android-base/logging.h>
 #include <keymaster/cppcose/cppcose.h>
 #include <keymaster/remote_provisioning_utils.h>
+#include <memunreachable/memunreachable.h>
 
 #ifdef NXP_EXTNS
 #define KM_RKP_VERSION_1 0x01
@@ -293,6 +294,13 @@ JavacardRemotelyProvisionedComponentDevice::generateCertificateRequest(bool test
             .add(std::move(recipients))
             .encode();
     return ScopedAStatus::ok();
+}
+
+binder_status_t JavacardRemotelyProvisionedComponentDevice::dump(int /* fd */, const char** /* p */,
+                                                                 uint32_t /* q */) {
+    LOG(INFO) << "\n KeyMint-JavacardRemotelyProvisionedComponentDevice Info = \n"
+              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
+    return STATUS_OK;
 }
 
 } // namespace aidl::android::hardware::security::keymint
