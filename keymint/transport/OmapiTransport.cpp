@@ -336,8 +336,8 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
-      if (!mSBAccessController.isSelectAllowed()) {
-        LOG(ERROR) << "Select not allowed";
+      if (!mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+        LOG(ERROR) << "Select / Command INS not allowed";
         prepareErrorRepsponse(transmitResponse);
         return false;
       }
