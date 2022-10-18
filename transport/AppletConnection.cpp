@@ -204,7 +204,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
 
     mSEClient->transmit(cmd, [&](hidl_vec<uint8_t> result) {
         output = result;
-        LOG(INFO) << "recieved response size = " << ::android::hardware::toString(result.size()) << " data = " << result;
+        LOG(INFO) << "received response size = " << ::android::hardware::toString(result.size()) << " data = " << result;
     });
 
     // un-block signal delivery
@@ -231,7 +231,7 @@ bool AppletConnection::close() {
         /*
          * reason could be SE reset or HAL deinit triggered from other client
          * which anyway closes all the opened channels
-         * */
+         */
         LOG(ERROR) << "closeChannel failed";
         mOpenChannel = -1;
         return true;

@@ -58,7 +58,7 @@ void customSignalHandler(int sig, siginfo_t* info, void* ucontext) {
 /**
  * Register signal Handler.
  * Use mPtrC to pass handle/data which might be required in signal Handler context
- * marks registration OK if atleast one of signal is registered successfully
+ * marks registration OK if at least one of signal is registered successfully
  */
 
 void SignalHandler::installHandler(void* mPtr) {

@@ -51,7 +51,7 @@ class SBAccessController {
     /**
      * Controls Applet selection
      * 1) Not allowed when actual upgrade is in progress for 40 secs
-     * 2) Only allowed for whitelisted cmds during early boot in upgrade teared case
+     * 2) Only allowed for allow listed cmds during early boot in upgrade teared case
      * 3) Allowed in all other cases
      * Params : void
      * Returns : true if Applet select is allowed else false
@@ -66,7 +66,7 @@ class SBAccessController {
     void parseResponse(std::vector<uint8_t>& responseApdu);
 
     /**
-     * Determins if current INS is allowed
+     * Determines if current INS is allowed
      * Params : one bytes INS value
      * Returns : true if cmd is allowed else false
      */
@@ -83,7 +83,7 @@ class SBAccessController {
      */
     int getSessionTimeout();
     /**
-     * Helper function to check if all whitelisted cmds
+     * Helper function to check if all allowed cmds
      * are received to mark mBootState as BOOT_ENDED
      * Params: void
      * Returns: void

@@ -42,7 +42,7 @@ using std::vector;
 enum class BufferingMode : int32_t {
     NONE = 0,           // Send everything to javacard - most of the assymteric operations
     RSA_NO_DIGEST = 1,  // Buffer everything in update upto 256 bytes and send in finish. If
-                        // input data is greater then 256 bytes then it is an error. Javacard
+                        // input data is greater than 256 bytes than it is an error. Javacard
                         // will further check according to exact key size and crypto provider.
     EC_NO_DIGEST = 2,   // Buffer upto 65 bytes and then truncate. Javacard will further truncate
                         // upto exact keysize.

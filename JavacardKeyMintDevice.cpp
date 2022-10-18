@@ -349,7 +349,7 @@ void JavacardKeyMintDevice::handleSendEarlyBootEndedEvent() {
 ScopedAStatus JavacardKeyMintDevice::earlyBootEnded() {
     auto [item, err] = card_->sendRequest(Instruction::INS_EARLY_BOOT_ENDED_CMD);
     if (err != KM_ERROR_OK) {
-        // Incase of failure cache the event and send in the next immediate request to Applet.
+        // In case of failure cache the event and send in the next immediate request to Applet.
         isEarlyBootEventPending = true;
         return km_utils::kmError2ScopedAStatus(err);
     }

@@ -85,7 +85,7 @@ class CborConverter {
 
     bool getMapItem(const std::unique_ptr<Item>& item, const uint32_t pos,
                              Map& map);
-    
+
     bool getArrayItem(const std::unique_ptr<Item>& item, const uint32_t pos,
                              Array& array);
 

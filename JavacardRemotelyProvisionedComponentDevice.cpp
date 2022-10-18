@@ -235,7 +235,7 @@ JavacardRemotelyProvisionedComponentDevice::finishSendData(
 
 ScopedAStatus
 JavacardRemotelyProvisionedComponentDevice::getResponse(
-    std::vector<uint8_t>& partialCipheredData, cppbor::Array& recepientStructure,
+    std::vector<uint8_t>& partialCipheredData, cppbor::Array& recipientStructure,
     uint32_t& respFlag) {
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_RESPONSE_CMD);
     if (err != KM_ERROR_OK) {
@@ -243,7 +243,7 @@ JavacardRemotelyProvisionedComponentDevice::getResponse(
         return km_utils::kmError2ScopedAStatus(translateRkpErrorCode(err));
     }
     if (!cbor_.getBinaryArray(item, 1, partialCipheredData) ||
-        !cbor_.getArrayItem(item, 2, recepientStructure) ||
+        !cbor_.getArrayItem(item, 2, recipientStructure) ||
         !cbor_.getUint64(item, 3, respFlag)) {
          LOG(ERROR) << "Error in decoding og response in getResponse.";
          return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);

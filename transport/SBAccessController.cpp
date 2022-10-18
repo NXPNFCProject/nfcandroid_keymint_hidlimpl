@@ -34,7 +34,7 @@ static bool g_AccessAllowed = true;
 static bool g_IsCryptoOperationRunning = false;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
-// Whitelisted cmds
+// Allow listed cmds
 std::map<uint8_t, uint8_t> allowedCmdIns = {{0x09 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
                                             {0x2A /*INS_COMPUTE_SHARED_HMAC*/, 0},
                                             {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
@@ -102,7 +102,7 @@ bool SBAccessController::isSelectAllowed() {
 }
 void SBAccessController::updateBootState() {
     // set the state to BOOT_ENDED once we have received
-    // all whitelisted commands
+    // all allowed commands
     bool allCmdreceived = true;
     for (auto it = allowedCmdIns.begin(); it != allowedCmdIns.end(); it++) {
         if (it->second == 0) {

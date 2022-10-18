@@ -70,7 +70,7 @@ class JavacardRemotelyProvisionedComponentDevice
                                uint32_t& respFlag);
 
   ScopedAStatus getResponse(std::vector<uint8_t>& partialCipheredData,
-                            cppbor::Array& recepientStructure,
+                            cppbor::Array& recipientStructure,
                             uint32_t& respFlag);
   std::shared_ptr<JavacardSecureElement> card_;
   CborConverter cbor_;
