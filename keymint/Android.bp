@@ -34,7 +34,6 @@ cc_library {
     name: "libjc_keymint",
     defaults: [
         "keymaster_defaults",
-        "keymint_use_latest_hal_aidl_ndk_shared",
     ],
     srcs: [
     	"CborConverter.cpp",
@@ -65,6 +64,7 @@ cc_library {
         "libjc_keymint_transport",
         "libbinder_ndk",
         "libmemunreachable",
+        "android.hardware.security.keymint-V2-ndk",
     ],
     export_include_dirs: [
         ".",
@@ -79,9 +79,6 @@ cc_library {
 
 cc_library {
     name: "libjc_keymint_transport",
-    defaults: [
-        "keymint_use_latest_hal_aidl_ndk_shared",
-    ],
     vendor_available: true,
     srcs: [
         "transport/*.cpp",
@@ -111,14 +108,12 @@ cc_library {
         "libhardware",
         "libhidlbase",
         "libbinder_ndk",
+        "android.hardware.security.keymint-V2-ndk",
     ],
 }
 
 cc_binary {
     name: "android.hardware.security.keymint-service.strongbox",
-    defaults: [
-        "keymint_use_latest_hal_aidl_ndk_shared",
-    ],
     relative_install_path: "hw",
     init_rc: ["android.hardware.security.keymint-service.strongbox.rc"],
     vintf_fragments: [
@@ -145,6 +140,7 @@ cc_binary {
         "liblog",
         "libutils",
         "libhidlbase",
+        "android.hardware.security.keymint-V2-ndk",
     ],
     srcs: [
         "service.cpp",
