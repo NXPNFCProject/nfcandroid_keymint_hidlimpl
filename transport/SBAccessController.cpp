@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021 NXP
+ *  Copyright 2021-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,10 +35,9 @@ static bool g_IsCryptoOperationRunning = false;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
 // Allow listed cmds
-std::map<uint8_t, uint8_t> allowedCmdIns = {{0x09 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
+std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
                                             {0x2A /*INS_COMPUTE_SHARED_HMAC*/, 0},
-                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
-                                            {0x2F /*INS_GET_HW_INFO*/, 0}};
+                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0}};
 
 static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
