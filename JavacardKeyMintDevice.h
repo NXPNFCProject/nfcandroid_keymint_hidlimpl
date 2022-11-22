@@ -59,6 +59,9 @@ class JavacardKeyMintDevice : public BnKeyMintDevice {
     }
     virtual ~JavacardKeyMintDevice() {}
 
+    // Methods from ::ndk::ICInterface follow.
+    binder_status_t dump(int fd, const char** args, uint32_t num_args) override;
+
     ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info) override;
 
     ScopedAStatus addRngEntropy(const vector<uint8_t>& data) override;
