@@ -24,9 +24,16 @@ cc_binary {
         "service.cpp",
         "AuthSecret.cpp",
     ],
+    cflags: [
+        "-DOMAPI_TRANSPORT",
+        "-Wall",
+        "-Werror",
+    ],
     shared_libs: [
         "android.hardware.authsecret-V1-ndk",
         "libbase",
         "libbinder_ndk",
+        "android.se.omapi-V1-ndk",
+        "libjc_keymint_transport",
     ],
 }
