@@ -23,9 +23,11 @@ cc_binary {
     srcs: [
         "service.cpp",
         "AuthSecret.cpp",
+        "AuthSecretHelper.cpp",
     ],
     cflags: [
         "-DOMAPI_TRANSPORT",
+        "-DNXP_EXTNS",
         "-Wall",
         "-Werror",
     ],
@@ -35,5 +37,6 @@ cc_binary {
         "libbinder_ndk",
         "android.se.omapi-V1-ndk",
         "libjc_keymint_transport",
+        "libcppbor_external",
     ],
 }

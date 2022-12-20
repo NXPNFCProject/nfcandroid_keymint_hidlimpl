@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022 NXP
+ ** Copyright 2022-2023 NXP
  **
  *********************************************************************************/
 #if defined OMAPI_TRANSPORT
@@ -42,7 +42,7 @@
 #include <aidl/android/se/omapi/ISecureElementReader.h>
 #include <aidl/android/se/omapi/ISecureElementService.h>
 #include <aidl/android/se/omapi/ISecureElementSession.h>
-//#include <aidl/android/se/omapi/SecureElementErrorCode.h>
+// #include <aidl/android/se/omapi/SecureElementErrorCode.h>
 #include <android/binder_manager.h>
 
 #include <map>
@@ -67,7 +67,7 @@ class OmapiTransport : public ITransport {
 
 public:
   OmapiTransport(const std::vector<uint8_t> &mAppletAID)
-      : ITransport(mAppletAID), mSelectableAid(mAppletAID) {
+      : ITransport(mAppletAID), mTimeout(0), mSelectableAid(mAppletAID) {
 #ifdef NXP_EXTNS
     mDeathRecipient = ::ndk::ScopedAIBinder_DeathRecipient(
         AIBinder_DeathRecipient_new(BinderDiedCallback));
@@ -93,13 +93,21 @@ public:
      */
     bool isConnected() override;
 #ifdef NXP_EXTNS
+    /**
+     * Closes the opened channel.
+     */
     void closeChannel();
+    /**
+     * set default Interval timer timeout value.
+     */
+    void setDefaultTimeout(int timeout);
 #endif
 
   private:
     //AppletConnection mAppletConnection;
     SBAccessController mSBAccessController;
     IntervalTimer mTimer;
+    int mTimeout;
     std::vector<uint8_t> mSelectableAid;
     std::shared_ptr<aidl::android::se::omapi::ISecureElementService> omapiSeService = nullptr;
     std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> eSEReader = nullptr;

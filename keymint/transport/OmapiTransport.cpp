@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022 NXP
+ ** Copyright 2022-2023 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -56,6 +56,9 @@
 #ifdef NXP_EXTNS
 #define DEFAULT_SESSION_TIMEOUT_MSEC 1000
 #endif
+
+using android::base::StringPrintf;
+
 namespace keymint::javacard {
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
@@ -301,6 +304,13 @@ bool OmapiTransport::isConnected() {
 }
 
 #ifdef NXP_EXTNS
+
+void OmapiTransport::setDefaultTimeout(int timeout) {
+    if (mTimeout != timeout) {
+        mTimeout = timeout;
+    }
+}
+
 bool OmapiTransport::internalProtectedTransmitApdu(
         std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
         std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse) {
@@ -374,16 +384,25 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
 #ifdef INTERVAL_TIMER
-    int timeout = ((kWeaverAID == mSelectableAid)
+    int timeout = 0x00;
+    if (mTimeout) {
+        timeout = mTimeout;
+    } else {
+        timeout = ((kWeaverAID == mSelectableAid)
                        ? DEFAULT_SESSION_TIMEOUT_MSEC
                        : mSBAccessController.getSessionTimeout());
+    }
+
     if (timeout == 0 || !res.isOk() ||
         ((transmitResponse.size() >= 2) &&
          (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
       closeChannel(); // close immediately
     } else {
       LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-      mTimer.set(timeout, this, omapiSessionTimerFunc);
+      if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
+        LOG(ERROR) << "Set Timer Failed !!!";
+        closeChannel();
+      }
     }
 #else
     closeChannel();

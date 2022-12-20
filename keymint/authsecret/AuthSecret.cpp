@@ -29,107 +29,114 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022 NXP
+ ** Copyright 2022-2023 NXP
  **
  *********************************************************************************/
 
+#define LOG_TAG "AuthSecret-Hal"
 #include "AuthSecret.h"
-#include "EseTransportUtils.h"
-#include "OmapiTransport.h"
-#include <android-base/logging.h>
-
-#define APDU_CLS 0x80
-#define APDU_P1 0x00
-#define APDU_P2 0x00
-
-enum class Instruction {
-  INS_VERIFY_PIN = 0x20,
-  INS_CLEAR_APPROVED_STATUS = 0x30,
-};
+#include "AuthSecretHelper.h"
 
 using keymint::javacard::OmapiTransport;
 
 const std::vector<uint8_t> gAuthSecretAppletAID = {0xA0, 0x00, 0x00, 0x03, 0x96,
                                                    0x54, 0x53, 0x00, 0x00, 0x00,
                                                    0x01, 0x00, 0x52};
+
 static OmapiTransport *gTransport = new OmapiTransport(gAuthSecretAppletAID);
+static AuthSecretHelper *gAuthSecretImplInstance = AuthSecretHelper::getInstance();
 
 namespace aidl {
 namespace android {
 namespace hardware {
 namespace authsecret {
 
-static bool constructApdu(Instruction ins, const std::vector<uint8_t> &input,
-                          std::vector<uint8_t> &out,
-                          std::vector<uint8_t> timeout) {
-  const std::vector<uint8_t> tagVerifyPin = {0x81, 0x50};
+static void authSecretTimerExpiryFunc(union sigval arg) {
+  LOG(INFO) << StringPrintf(
+      "%s: Enter. Clearing AuthSecret Approved Status !!!", __func__);
+  AuthSecret *obj = (AuthSecret *)arg.sival_ptr;
+  if (obj != nullptr)
+    obj->clearAuthApprovedStatus();
+}
 
-  /* For future purpose*/
-  const std::vector<uint8_t> tagVerifyPinWithTimeout = {0x82, 0x50};
-  const std::vector<uint8_t> tagTimeout = {0x42};
-
-  /* Insert CLA, INS, P1, P2*/
-  out.push_back(static_cast<uint8_t>(APDU_CLS));
-  out.push_back(static_cast<uint8_t>(ins));
-  out.push_back(static_cast<uint8_t>(APDU_P1));
-  out.push_back(static_cast<uint8_t>(APDU_P2));
-
-  switch (ins) {
-  case Instruction::INS_VERIFY_PIN:
-    if (timeout.size()) {
-      /* Insert Length*/
-      uint8_t apduLength = (tagVerifyPinWithTimeout.size() + input.size() +
-                            tagTimeout.size() + timeout.size());
-      out.push_back(static_cast<uint8_t>(apduLength));
-
-      /*Insert Payload*/
-      out.insert(out.end(), tagVerifyPinWithTimeout.begin(),
-                 tagVerifyPinWithTimeout.end());
-      out.insert(out.end(), input.begin(), input.end());
-      out.insert(out.end(), tagTimeout.begin(), tagTimeout.end());
-      out.insert(out.end(), timeout.begin(), timeout.end());
-    } else {
-      /* Insert Length*/
-      uint8_t apduLength = (tagVerifyPin.size() + input.size());
-      out.push_back(static_cast<uint8_t>(apduLength));
-
-      /*Insert Payload*/
-      out.insert(out.end(), tagVerifyPin.begin(), tagVerifyPin.end());
-      out.insert(out.end(), input.begin(), input.end());
-    }
-    break;
-  case Instruction::INS_CLEAR_APPROVED_STATUS:
-    /* Nothing to do. No Payload for Clear approved status*/
-    break;
-  default:
-    LOG(ERROR) << "Unknown INS. constructApdu failed";
-    return false;
+void AuthSecret::clearAuthApprovedStatus() {
+  LOG(INFO) << StringPrintf("%s: Enter", __func__);
+  std::vector<uint8_t> cmd;
+  std::vector<uint8_t> timeout;
+  std::vector<uint8_t> input;
+  bool status = gAuthSecretImplInstance->constructApdu(
+      Instruction::INS_CLEAR_APPROVED_STATUS, input, cmd, timeout);
+  if (!status) {
+    LOG(ERROR) << StringPrintf("%s: constructApdu failed", __func__);
+    return;
   }
 
-  /* Insert LE */
-  out.push_back(static_cast<uint8_t>(0x00));
-  return true;
+  std::vector<uint8_t> resp;
+  uint8_t retry = 0;
+  do {
+    if (!gTransport->sendData(cmd, resp)) {
+      LOG(ERROR) << StringPrintf("%s: Error in sending data in sendData.",
+                                 __func__);
+    } else {
+      if ((resp.size() < 2) || (getApduStatus(resp) != APDU_RESP_STATUS_OK)) {
+        LOG(ERROR) << StringPrintf("%s: failed", __func__);
+      } else { break; }
+    }
+    usleep(1 * ONE_SEC);
+  } while (++retry < MAX_RETRY_COUNT);
+
+
+  LOG(INFO) << StringPrintf("%s: Exit", __func__);
 }
 
 // Methods from ::android::hardware::authsecret::IAuthSecret follow.
 ::ndk::ScopedAStatus
 AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
-  LOG(INFO) << "setPrimaryUserCredential: Enter";
+  LOG(INFO) << StringPrintf("%s: Enter", __func__);
   std::vector<uint8_t> cmd;
   std::vector<uint8_t> timeout;
-  bool status =
-      constructApdu(Instruction::INS_VERIFY_PIN, in_secret, cmd, timeout);
+  bool status = gAuthSecretImplInstance->constructApdu(
+      Instruction::INS_VERIFY_PIN, in_secret, cmd, timeout);
   if (!status) {
-    LOG(ERROR) << "constructApdu failed";
+    LOG(ERROR) << StringPrintf("%s: constructApdu failed", __func__);
     return ::ndk::ScopedAStatus::ok();
   }
 
-  std::vector<uint8_t> resp;
-  if (!gTransport->sendData(cmd, resp)) {
-    LOG(ERROR) << "Error in sending data in sendData.";
-  }
-  LOG(INFO) << "setPrimaryUserCredential: Exit";
+  mAuthClearTimer.kill();
 
+  gTransport->setDefaultTimeout(DEFAULT_SESSION_TIMEOUT);
+  clearAuthApprovedStatus();
+
+  std::vector<uint8_t> resp;
+  uint8_t retry = 0;
+  do {
+    if (!gTransport->sendData(cmd, resp)) {
+      LOG(ERROR) << StringPrintf("%s: Error in sending data in sendData.",
+                                 __func__);
+    } else {
+      break;
+    }
+  } while (++retry < MAX_RETRY_COUNT);
+
+  if ((resp.size() < 2) || (getApduStatus(resp) != APDU_RESP_STATUS_OK) ||
+      !gAuthSecretImplInstance->checkVerifyStatus(resp)) {
+    clearAuthApprovedStatus();
+    return ::ndk::ScopedAStatus::ok();
+  }
+
+  uint64_t clearAuthTimeout =
+      gAuthSecretImplInstance->extractTimeoutValue(resp);
+  LOG(INFO) << StringPrintf("%s: AuthSecret Clear status Timeout = %ld secs",
+                            __func__, clearAuthTimeout);
+  if (clearAuthTimeout) {
+    if (!mAuthClearTimer.set(clearAuthTimeout * 1000, this,
+                             authSecretTimerExpiryFunc)) {
+      LOG(ERROR) << StringPrintf("%s: Set Timer Failed !!!", __func__);
+      clearAuthApprovedStatus();
+    }
+  }
+
+  LOG(INFO) << StringPrintf("%s: Exit", __func__);
   return ::ndk::ScopedAStatus::ok();
 }
 
