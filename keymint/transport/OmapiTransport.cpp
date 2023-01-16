@@ -35,6 +35,8 @@
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
 #if defined OMAPI_TRANSPORT
+#include "OmapiTransport.h"
+
 #include <stdio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -45,8 +47,6 @@
 
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-
-#include "OmapiTransport.h"
 
 #include <EseTransportUtils.h>
 #include <IntervalTimer.h>

@@ -34,17 +34,19 @@
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox-service"
 
+#include <aidl/android/hardware/security/keymint/SecurityLevel.h>
+
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
+#include <android-base/properties.h>
 
 #include "JavacardKeyMintDevice.h"
-#include <aidl/android/hardware/security/keymint/SecurityLevel.h>
 
 #include "JavacardSecureElement.h"
 #include "JavacardSharedSecret.h"
-#include "keymint_utils.h"
 #include "JavacardRemotelyProvisionedComponentDevice.h"
+#include "keymint_utils.h"
 #if defined OMAPI_TRANSPORT
 #include <OmapiTransport.h>
 #elif defined HAL_TO_HAL_TRANSPORT
