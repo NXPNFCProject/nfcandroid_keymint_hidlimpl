@@ -39,7 +39,10 @@ using std::vector;
 static uint8_t getSharedSecretRetryCount = 0x00;
 
 ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParameters* params) {
-    card_->initializeJavacard();
+    auto error = card_->initializeJavacard();
+    if(error != KM_ERROR_OK) {
+        LOG(ERROR) << "Error in initializing javacard.";
+    }
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
 #ifdef NXP_EXTNS
     if (err != KM_ERROR_OK && (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
@@ -56,7 +59,7 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
     }
 #endif
     if (err != KM_ERROR_OK) {
-        LOG(ERROR) << "Error in sending in getSharedSecretParameters.!!!!!!!!!!!!!!!";
+        LOG(ERROR) << "Error in sending in getSharedSecretParameters.";
         return km_utils::kmError2ScopedAStatus(err);
     }
     if (!cbor_.getSharedSecretParameters(item, 1, *params)) {
@@ -70,7 +73,10 @@ ScopedAStatus
 JavacardSharedSecret::computeSharedSecret(const std::vector<SharedSecretParameters>& params,
                                           std::vector<uint8_t>* secret) {
 
-    card_->initializeJavacard();
+    auto error = card_->initializeJavacard();
+    if(error != KM_ERROR_OK) {
+        LOG(ERROR) << "Error in initializing javacard.";
+    }
     cppbor::Array request;
     cbor_.addSharedSecretParameters(request, params);
     auto [item, err] = card_->sendRequest(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request);
