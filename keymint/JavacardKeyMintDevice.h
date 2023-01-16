@@ -50,12 +50,12 @@ using ndk::ScopedAStatus;
 using std::optional;
 using std::shared_ptr;
 using std::vector;
+using std::array;
 
 class JavacardKeyMintDevice : public BnKeyMintDevice {
   public:
     explicit JavacardKeyMintDevice(shared_ptr<JavacardSecureElement> card)
-        : securitylevel_(SecurityLevel::STRONGBOX), card_(card),
-          isEarlyBootEventPending(true) {
+        : securitylevel_(SecurityLevel::STRONGBOX), card_(card) {
         card_->initializeJavacard();
     }
     virtual ~JavacardKeyMintDevice() {}
@@ -109,12 +109,12 @@ class JavacardKeyMintDevice : public BnKeyMintDevice {
     ScopedAStatus convertStorageKeyToEphemeral(const std::vector<uint8_t>& storageKeyBlob,
                                                std::vector<uint8_t>* ephemeralKeyBlob) override;
 
-    ScopedAStatus getRootOfTrustChallenge(std::array<uint8_t, 16>* _aidl_return) override;
+    ScopedAStatus getRootOfTrustChallenge(array<uint8_t, 16>* challenge) override;
 
-    ScopedAStatus getRootOfTrust(const std::array<uint8_t, 16>& in_challenge,
-                                  std::vector<uint8_t>* _aidl_return) override;
+    ScopedAStatus getRootOfTrust(const array<uint8_t, 16>& challenge,
+                                 vector<uint8_t>* rootOfTrust) override;
 
-    ScopedAStatus sendRootOfTrust(const std::vector<uint8_t>& in_rootOfTrust) override;
+    ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust) override;
 
   private:
     keymaster_error_t parseWrappedKey(const vector<uint8_t>& wrappedKeyData,
@@ -136,12 +136,9 @@ class JavacardKeyMintDevice : public BnKeyMintDevice {
 
     ScopedAStatus defaultHwInfo(KeyMintHardwareInfo* info);
 
-    void handleSendEarlyBootEndedEvent();
-
     const SecurityLevel securitylevel_;
     const shared_ptr<JavacardSecureElement> card_;
     CborConverter cbor_;
-    bool isEarlyBootEventPending;
 };
 
 }  // namespace aidl::android::hardware::security::keymint

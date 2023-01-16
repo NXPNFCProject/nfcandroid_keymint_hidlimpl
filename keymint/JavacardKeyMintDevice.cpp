@@ -61,7 +61,7 @@ using namespace ::keymaster;
 using namespace ::keymint::javacard;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
-    info->versionNumber = 1;
+    info->versionNumber = 2;
     info->keyMintAuthorName = "Google";
     info->keyMintName = "JavacardKeymintDevice";
     info->securityLevel = securitylevel_;
@@ -317,7 +317,10 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
     cbor_.addHardwareAuthToken(array, token);
 
     // Send earlyBootEnded if there is any pending earlybootEnded event.
-    handleSendEarlyBootEndedEvent();
+    auto retErr = card_->sendEarlyBootEndedEvent(false);
+    if (retErr != KM_ERROR_OK) {
+        return km_utils::kmError2ScopedAStatus(retErr);;
+    }
 
     auto [item, err] = card_->sendRequest(Instruction::INS_BEGIN_OPERATION_CMD, array);
     if (err != KM_ERROR_OK) {
@@ -360,23 +363,12 @@ JavacardKeyMintDevice::deviceLocked(bool passwordOnly,
     return ScopedAStatus::ok();
 }
 
-void JavacardKeyMintDevice::handleSendEarlyBootEndedEvent() {
-    if (isEarlyBootEventPending) {
-        LOG(INFO) << "JavacardKeyMintDevice::handleSendEarlyBootEndedEvent send earlyBootEnded Event.";
-        if (earlyBootEnded().isOk()) {
-            isEarlyBootEventPending = false;
-        }
-    }
-}
-
 ScopedAStatus JavacardKeyMintDevice::earlyBootEnded() {
-    auto [item, err] = card_->sendRequest(Instruction::INS_EARLY_BOOT_ENDED_CMD);
+    auto err = card_->sendEarlyBootEndedEvent(true);
     if (err != KM_ERROR_OK) {
-        // In case of failure cache the event and send in the next immediate request to Applet.
-        isEarlyBootEventPending = true;
+        LOG(ERROR) << "Error in sending earlyBootEndedEvent.";
         return km_utils::kmError2ScopedAStatus(err);
     }
-    isEarlyBootEventPending = false;
     return ScopedAStatus::ok();
 }
 
@@ -480,4 +472,5 @@ binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, 
               << ::android::GetUnreachableMemoryString(true, 10000).c_str();
     return STATUS_OK;
 }
+
 }  // namespace aidl::android::hardware::security::keymint

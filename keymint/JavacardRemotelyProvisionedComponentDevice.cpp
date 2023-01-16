@@ -82,9 +82,10 @@ keymaster_error_t translateRkpErrorCode(keymaster_error_t error) {
 }
 
 ScopedAStatus defaultHwInfo(RpcHardwareInfo* info) {
-    info->versionNumber = 1;
+    info->versionNumber = 2;
     info->rpcAuthorName = "Google";
     info->supportedEekCurve = RpcHardwareInfo::CURVE_P256;
+    info->uniqueId = "strongbox keymint";
     return ScopedAStatus::ok();
 }
 
@@ -113,10 +114,12 @@ JavacardRemotelyProvisionedComponentDevice::getHardwareInfo(RpcHardwareInfo* inf
     std::optional<uint32_t> optVersionNumber;
     std::optional<uint32_t> optSupportedEekCurve;
     std::optional<string> optRpcAuthorName;
+    std::optional<string> optUniqueId;
     if (err != KM_ERROR_OK ||
         !(optVersionNumber = cbor_.getUint64<uint32_t>(item, 1)) ||
         !(optRpcAuthorName = cbor_.getByteArrayStr(item, 2)) ||
-        !(optSupportedEekCurve = cbor_.getUint64<uint32_t>(item, 3))) {
+        !(optSupportedEekCurve = cbor_.getUint64<uint32_t>(item, 3)) ||
+        !(optUniqueId = cbor_.getByteArrayStr(item, 4))) {
         LOG(ERROR) << "Error in response of getHardwareInfo.";
         LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
         return defaultHwInfo(info);
@@ -132,7 +135,7 @@ JavacardRemotelyProvisionedComponentDevice::getHardwareInfo(RpcHardwareInfo* inf
             LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
             return defaultHwInfo(info);
         }
-        info->uniqueId = static_cast<::std::optional<::std::string>>(optUniqueId);
+        info->uniqueId = std::move(optUniqueId.value());
     }
 #endif
     return ScopedAStatus::ok();
