@@ -63,7 +63,7 @@ namespace keymint::javacard {
 
 std::string const ESE_READER_PREFIX = "eSE";
 constexpr const char omapiServiceName[] =
-        "android.system.omapi.ISecureElementService/default";
+        "android.se.omapi.ISecureElementService/default";
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
 
