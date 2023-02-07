@@ -142,7 +142,6 @@ ScopedAStatus JavacardKeyMintDevice::importKey(const vector<KeyParameter>& keyPa
                                                KeyFormat keyFormat, const vector<uint8_t>& keyData,
                                                const optional<AttestationKey>& attestationKey,
                                                KeyCreationResult* creationResult) {
-
     cppbor::Array request;
     // add key params
     cbor_.addKeyparameters(request, keyParams);
@@ -310,7 +309,6 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
                                            const std::vector<KeyParameter>& params,
                                            const std::optional<HardwareAuthToken>& authToken,
                                            BeginResult* result) {
-
     cppbor::Array array;
     std::vector<uint8_t> response;
     // make request

@@ -82,7 +82,6 @@ void OmapiTransport::BinderDiedCallback(void *cookie) {
 #endif
 
 bool OmapiTransport::initialize() {
-
     LOG(DEBUG) << "Initialize the secure element connection";
 
     // Get OMAPI vendor stable service handler
@@ -161,7 +160,6 @@ bool OmapiTransport::internalTransmitApdu(
         std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
         std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse) {
     auto mSEListener = ndk::SharedRefBase::make<SEListener>();
-
     LOG(DEBUG) << "internalTransmitApdu: trasmitting data to secure element";
 
     if (reader == nullptr) {
@@ -229,7 +227,6 @@ bool OmapiTransport::internalTransmitApdu(
 }
 
 bool OmapiTransport::openConnection() {
-
     // if already conection setup done, no need to initialise it again.
     if (isConnected()) {
         return true;

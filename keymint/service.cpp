@@ -35,7 +35,6 @@
 #define LOG_TAG "javacard.strongbox-service"
 
 #include <aidl/android/hardware/security/keymint/SecurityLevel.h>
-
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android/binder_manager.h>

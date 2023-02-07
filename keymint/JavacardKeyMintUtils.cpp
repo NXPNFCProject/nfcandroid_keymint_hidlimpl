@@ -180,7 +180,6 @@ keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams
         const auto& param = keyParams[i];
         auto tag = legacy_enum_conversion(param.tag);
         switch (typeFromTag(tag)) {
-
         case KM_ENUM:
         case KM_ENUM_REP:
             set.params[i] = aidlEnumParam2Km(param);

@@ -35,14 +35,12 @@ using ::keymint::javacard::Instruction;
 using std::string;
 
 // RKP error codes defined in keymint applet.
-constexpr keymaster_error_t kStatusFailed = static_cast<keymaster_error_t>(32000);
-constexpr keymaster_error_t kStatusInvalidMac = static_cast<keymaster_error_t>(32001);
-constexpr keymaster_error_t kStatusProductionKeyInTestRequest =
-    static_cast<keymaster_error_t>(32002);
-constexpr keymaster_error_t kStatusTestKeyInProductionRequest =
-    static_cast<keymaster_error_t>(32003);
-constexpr keymaster_error_t kStatusInvalidEek = static_cast<keymaster_error_t>(32004);
-constexpr keymaster_error_t kStatusInvalidState = static_cast<keymaster_error_t>(32005);
+constexpr int32_t kStatusFailed = 32000;
+constexpr int32_t kStatusInvalidMac = 32001;
+constexpr int32_t kStatusProductionKeyInTestRequest = 32002;
+constexpr int32_t kStatusTestKeyInProductionRequest = 32003;
+constexpr int32_t kStatusInvalidEek = 32004;
+constexpr int32_t kStatusInvalidState = 32005;
 
 namespace {
 

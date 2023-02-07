@@ -302,7 +302,8 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         if (!(optValue = getUint64(pair.second))) {
             return std::nullopt;
         }
-        // If a tag with this type is present, the value is true.  If absent, false.
+        // If a tag with this type is present, the value is true.  If absent,
+        // false.
         keyParam.boolean = true;
         keyParams.push_back(kmParam2Aidl(keyParam));
         return keyParams;
@@ -412,7 +413,6 @@ bool CborConverter::addTimeStampToken(Array& array, const TimeStampToken& token)
 }
 
 bool CborConverter::addHardwareAuthToken(Array& array, const HardwareAuthToken& authToken) {
-
     Array hwAuthToken;
     hwAuthToken.add(static_cast<uint64_t>(authToken.challenge));
     hwAuthToken.add(static_cast<uint64_t>(authToken.userId));
