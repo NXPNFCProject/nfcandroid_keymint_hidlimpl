@@ -43,14 +43,15 @@
 #include "JavacardSecureElement.h"
 
 namespace aidl::android::hardware::security::keymint {
-using namespace ::keymint::javacard;
-using namespace aidl::android::hardware::security::sharedsecret;
-using namespace aidl::android::hardware::security::secureclock;
+using cppbor::Item;
+using ::keymint::javacard::CborConverter;
+using ::keymint::javacard::JavacardSecureElement;
 using ndk::ScopedAStatus;
+using secureclock::TimeStampToken;
+using std::array;
 using std::optional;
 using std::shared_ptr;
 using std::vector;
-using std::array;
 
 class JavacardKeyMintDevice : public BnKeyMintDevice {
   public:

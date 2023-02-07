@@ -22,7 +22,7 @@
 
 #include <android-base/logging.h>
 
-#include "JavacardKeyMintUtils.h"
+#include <KeyMintUtils.h>
 #include <memunreachable/memunreachable.h>
 
 /* 1 sec delay till OMAPI service initialized (~ 30 to 40 secs)
@@ -31,17 +31,13 @@
 #define MAX_SHARED_SECRET_RETRY_COUNT 60
 
 namespace aidl::android::hardware::security::sharedsecret {
-using namespace ::keymint::javacard;
-using ndk::ScopedAStatus;
-using std::optional;
-using std::shared_ptr;
-using std::vector;
+using ::keymint::javacard::Instruction;
 
 static uint8_t getSharedSecretRetryCount = 0x00;
 
 ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParameters* params) {
     auto error = card_->initializeJavacard();
-    if(error != KM_ERROR_OK) {
+    if (error != KM_ERROR_OK) {
         LOG(ERROR) << "Error in initializing javacard.";
     }
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
@@ -61,12 +57,12 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
 #endif
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in getSharedSecretParameters.";
-        return km_utils::kmError2ScopedAStatus(err);
+        return keymint::km_utils::kmError2ScopedAStatus(err);
     }
     auto optSSParams = cbor_.getSharedSecretParameters(item, 1);
     if (!optSSParams) {
         LOG(ERROR) << "Error in sending in getSharedSecretParameters.";
-        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+        return keymint::km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
     *params = std::move(optSSParams.value());
     return ScopedAStatus::ok();
@@ -77,12 +73,12 @@ JavacardSharedSecret::computeSharedSecret(const std::vector<SharedSecretParamete
                                           std::vector<uint8_t>* secret) {
 
     auto error = card_->sendEarlyBootEndedEvent(false);
-    if(error != KM_ERROR_OK) {
+    if (error != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending earlyBoot event javacard.";
-        return km_utils::kmError2ScopedAStatus(error);
+        return keymint::km_utils::kmError2ScopedAStatus(error);
     }
     error = card_->initializeJavacard();
-    if(error != KM_ERROR_OK) {
+    if (error != KM_ERROR_OK) {
         LOG(ERROR) << "Error in initializing javacard.";
     }
     cppbor::Array request;
@@ -90,12 +86,12 @@ JavacardSharedSecret::computeSharedSecret(const std::vector<SharedSecretParamete
     auto [item, err] = card_->sendRequest(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request);
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in computeSharedSecret.";
-        return km_utils::kmError2ScopedAStatus(err);
+        return keymint::km_utils::kmError2ScopedAStatus(err);
     }
     auto optSecret = cbor_.getByteArrayVec(item, 1);
     if (!optSecret) {
         LOG(ERROR) << "Error in decoding the response in computeSharedSecret.";
-        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+        return keymint::km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
     *secret = std::move(optSecret.value());
     return ScopedAStatus::ok();

@@ -62,8 +62,7 @@ using android::base::StringPrintf;
 namespace keymint::javacard {
 
 std::string const ESE_READER_PREFIX = "eSE";
-constexpr const char omapiServiceName[] =
-        "android.se.omapi.ISecureElementService/default";
+constexpr const char omapiServiceName[] = "android.se.omapi.ISecureElementService/default";
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
 
@@ -208,10 +207,9 @@ bool OmapiTransport::internalTransmitApdu(
         return false;
     }
 
-    if ((selectResponse.size() < 2)
-        || ((selectResponse[selectResponse.size() -1] & 0xFF) != 0x00)
-        || ((selectResponse[selectResponse.size() -2] & 0xFF) != 0x90))
-    {
+    if ((selectResponse.size() < 2) ||
+        ((selectResponse[selectResponse.size() -1] & 0xFF) != 0x00) ||
+        ((selectResponse[selectResponse.size() -2] & 0xFF) != 0x90)) {
         LOG(ERROR) << "Failed to select the Applet.";
         return false;
     }
@@ -462,5 +460,5 @@ bool OmapiTransport::openChannelToApplet() {
 
 #endif
 
-}
+}  // namespace keymint::javacard
 #endif // OMAPI_TRANSPORT

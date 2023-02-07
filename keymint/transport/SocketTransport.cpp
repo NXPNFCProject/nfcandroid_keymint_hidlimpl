@@ -27,7 +27,7 @@
 #include "ITransport.h"
 
 #define PORT 8080
-#define IPADDR  "192.168.7.239"
+#define IPADDR "192.168.9.112"
 #define MAX_RECV_BUFFER_SIZE 2500
 
 namespace keymint::javacard {
@@ -78,7 +78,8 @@ bool SocketTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& o
     inDataPrependedLength.push_back(static_cast<uint8_t>(inData.size() & 0xFF));
     inDataPrependedLength.insert(inDataPrependedLength.end(), inData.begin(), inData.end());
 
-    if (0 > send(mSocket, inDataPrependedLength.data(), inDataPrependedLength.size(), MSG_NOSIGNAL)) {
+    if (0 >
+        send(mSocket, inDataPrependedLength.data(), inDataPrependedLength.size(), MSG_NOSIGNAL)) {
         static int connectionResetCnt = 0; /* To avoid loop */
         if ((ECONNRESET == errno || EPIPE == errno) && connectionResetCnt == 0) {
             // Connection reset. Try open socket and then sendData.
@@ -90,6 +91,7 @@ bool SocketTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& o
         connectionResetCnt = 0;
         return false;
     }
+
     return readData(output);
 }
 
@@ -109,24 +111,24 @@ bool SocketTransport::readData(vector<uint8_t>& output) {
     ssize_t totalBytesRead = 0;
     // The first 2 bytes in the response contains the expected response length.
     do {
-      size_t i = 0;
-      ssize_t numBytes = read(mSocket, buffer, MAX_RECV_BUFFER_SIZE);
-      if (0 > numBytes) {
-        LOG(ERROR) << "Failed to read data from socket.";
-        return false;
-      }
-      totalBytesRead += numBytes;
-      if (expectedResponseLen == 0) {
-        // First two bytes in the response contains the expected response length.
-        expectedResponseLen |=  static_cast<ssize_t>(buffer[1] & 0xFF);
-        expectedResponseLen |=  static_cast<ssize_t>((buffer[0] << 8) & 0xFF00);
-        // 2 bytes for storing the length.
-        expectedResponseLen += 2;
-        i = 2;
-      }
-      for (; i < numBytes; i++) {
-        output.push_back(buffer[i]);
-      }
+        size_t i = 0;
+        ssize_t numBytes = read(mSocket, buffer, MAX_RECV_BUFFER_SIZE);
+        if (0 > numBytes) {
+          LOG(ERROR) << "Failed to read data from socket.";
+          return false;
+        }
+        totalBytesRead += numBytes;
+        if (expectedResponseLen == 0) {
+          // First two bytes in the response contains the expected response length.
+          expectedResponseLen |=  static_cast<ssize_t>(buffer[1] & 0xFF);
+          expectedResponseLen |=  static_cast<ssize_t>((buffer[0] << 8) & 0xFF00);
+          // 2 bytes for storing the length.
+          expectedResponseLen += 2;
+          i = 2;
+        }
+        for (; i < numBytes; i++) {
+          output.push_back(buffer[i]);
+        }
     } while(totalBytesRead < expectedResponseLen);
 
     return true;

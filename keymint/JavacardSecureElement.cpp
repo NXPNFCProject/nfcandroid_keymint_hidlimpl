@@ -25,17 +25,14 @@
 #include <string>
 #include <vector>
 
-#include <keymaster/android_keymaster_messages.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <keymaster/android_keymaster_messages.h>
 
 #include "keymint_utils.h"
 
-
-
 namespace keymint::javacard {
 
-using namespace ::keymaster;
 keymaster_error_t JavacardSecureElement::initializeJavacard() {
     Array request;
     request.add(Uint(getOsVersion()));

@@ -36,15 +36,16 @@
 
 #include "JavacardKeyMintOperation.h"
 
+#include <KeyMintUtils.h>
 #include <aidl/android/hardware/security/keymint/ErrorCode.h>
 #include <aidl/android/hardware/security/secureclock/ISecureClock.h>
 #include <android-base/logging.h>
 
 #include "CborConverter.h"
-#include "JavacardKeyMintUtils.h"
 
 namespace aidl::android::hardware::security::keymint {
-using namespace ::keymint::javacard;
+using cppbor::Bstr;
+using cppbor::Uint;
 using secureclock::TimeStampToken;
 
 JavacardKeyMintOperation::~JavacardKeyMintOperation() {
@@ -93,10 +94,12 @@ ScopedAStatus JavacardKeyMintOperation::update(const vector<uint8_t>& input,
     return km_utils::kmError2ScopedAStatus(err);
 }
 
-ScopedAStatus JavacardKeyMintOperation::finish(
-    const optional<vector<uint8_t>>& input, const optional<vector<uint8_t>>& signature,
-    const optional<HardwareAuthToken>& authToken, const optional<TimeStampToken>& timestampToken,
-    const optional<vector<uint8_t>>& confirmationToken, vector<uint8_t>* output) {
+ScopedAStatus JavacardKeyMintOperation::finish(const optional<vector<uint8_t>>& input,
+                                               const optional<vector<uint8_t>>& signature,
+                                               const optional<HardwareAuthToken>& authToken,
+                                               const optional<TimeStampToken>& timestampToken,
+                                               const optional<vector<uint8_t>>& confirmationToken,
+                                               vector<uint8_t>* output) {
     HardwareAuthToken aToken = authToken.value_or(HardwareAuthToken());
     TimeStampToken tToken = timestampToken.value_or(TimeStampToken());
     const vector<uint8_t> confToken = confirmationToken.value_or(vector<uint8_t>());
@@ -120,7 +123,8 @@ ScopedAStatus JavacardKeyMintOperation::finish(
         appendBufferedData(view);
     }
     vector<uint8_t> remaining = popNextChunk(view, view.length);
-    return km_utils::kmError2ScopedAStatus(sendFinish(remaining, sign, aToken, tToken, confToken, *output));
+    return km_utils::kmError2ScopedAStatus(
+        sendFinish(remaining, sign, aToken, tToken, confToken, *output));
 }
 
 ScopedAStatus JavacardKeyMintOperation::abort() {
@@ -157,7 +161,7 @@ void JavacardKeyMintOperation::blockAlign(DataView& view, uint16_t blockSize) {
 uint16_t JavacardKeyMintOperation::getDataViewOffset(DataView& view, uint16_t blockSize) {
     uint16_t offset = 0;
     uint16_t remaining = 0;
-    switch(bufferingMode_) {
+    switch (bufferingMode_) {
     case BufferingMode::BUF_DES_DECRYPT_PKCS7_BLOCK_ALIGNED:
     case BufferingMode::BUF_AES_DECRYPT_PKCS7_BLOCK_ALIGNED:
         offset = ((view.length / blockSize)) * blockSize;

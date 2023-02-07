@@ -58,7 +58,6 @@ KeyParameter kmEnumParam2Aidl(const keymaster_key_param_t& param) {
     }
 }
 
-
 KeyParameter kmParam2Aidl(const keymaster_key_param_t& param) {
     auto tag = legacy_enum_conversion(param.tag);
     switch (typeFromTag(param.tag)) {
@@ -146,8 +145,6 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
         return keymaster_param_enum(tag, false);
     }
 }
-
-
 
 keymaster_error_t legacyHardwareAuthToken(const HardwareAuthToken& aidlToken,
                                           LegacyHardwareAuthToken* legacyToken) {
@@ -240,4 +237,4 @@ keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams
     return set;
 }
 
-}  // namespace aidl::android::hardware::security::keymint
+}  // namespace aidl::android::hardware::security::keymint::km_utils
