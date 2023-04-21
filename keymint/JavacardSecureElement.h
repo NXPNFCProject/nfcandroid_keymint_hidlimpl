@@ -99,11 +99,10 @@ enum class Instruction {
 
 class JavacardSecureElement {
   public:
-    explicit JavacardSecureElement(shared_ptr<ITransport> transport, uint32_t osVersion,
-                                   uint32_t osPatchLevel, uint32_t vendorPatchLevel)
-        : transport_(transport), osVersion_(osVersion), osPatchLevel_(osPatchLevel),
-          vendorPatchLevel_(vendorPatchLevel), isEarlyBootEventPending(false) {
-        transport_->openConnection();
+    explicit JavacardSecureElement(shared_ptr<ITransport> transport)
+        : transport_(transport), isEarlyBootEndedPending(false),
+          isDeleteAllKeysPending(false) {
+      transport_->openConnection();
     }
     virtual ~JavacardSecureElement() { transport_->closeConnection(); }
 
@@ -119,7 +118,10 @@ class JavacardSecureElement {
     keymaster_error_t constructApduMessage(Instruction& ins, std::vector<uint8_t>& inputData,
                                            std::vector<uint8_t>& apduOut);
     keymaster_error_t initializeJavacard();
-    keymaster_error_t sendEarlyBootEndedEvent(bool eventTriggered);
+    void sendPendingEvents();
+    void setEarlyBootEndedPending();
+    void setDeleteAllKeysPending();
+
     inline uint16_t getApduStatus(std::vector<uint8_t>& inputData) {
         // Last two bytes are the status SW0SW1
         uint8_t SW0 = inputData.at(inputData.size() - 2);
@@ -127,11 +129,10 @@ class JavacardSecureElement {
         return (SW0 << 8 | SW1);
     }
 
+  private:
     shared_ptr<ITransport> transport_;
-    uint32_t osVersion_;
-    uint32_t osPatchLevel_;
-    uint32_t vendorPatchLevel_;
-    bool isEarlyBootEventPending;
+    bool isEarlyBootEndedPending;
+    bool isDeleteAllKeysPending;
     CborConverter cbor_;
 };
 }  // namespace keymint::javacard

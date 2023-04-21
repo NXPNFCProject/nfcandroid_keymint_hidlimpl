@@ -86,17 +86,17 @@ int main() {
     ABinderProcess_setThreadPoolMaxThreadCount(0);
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
-    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
-        std::make_shared<OmapiTransport>(gStrongBoxAppletAID), getOsVersion(),
-                                         getOsPatchlevel(), getVendorPatchlevel());
+    std::shared_ptr<JavacardSecureElement> card =
+        std::make_shared<JavacardSecureElement>(
+            std::make_shared<OmapiTransport>(gStrongBoxAppletAID));
 #elif defined HAL_TO_HAL_TRANSPORT
-    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
-        std::make_shared<HalToHalTransport>(gStrongBoxAppletAID), getOsVersion(),
-                                            getOsPatchlevel(), getVendorPatchlevel());
+    std::shared_ptr<JavacardSecureElement> card =
+        std::make_shared<JavacardSecureElement>(
+            std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
 #else
-    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
-        std::make_shared<SocketTransport>(gStrongBoxAppletAID), getOsVersion(),
-                                          getOsPatchlevel(), getVendorPatchlevel());
+    std::shared_ptr<JavacardSecureElement> card =
+        std::make_shared<JavacardSecureElement>(
+            std::make_shared<SocketTransport>(gStrongBoxAppletAID));
 #endif
     // Add Keymint Service
     addService<JavacardKeyMintDevice>(card);
