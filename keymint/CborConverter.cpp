@@ -90,63 +90,63 @@ bool CborConverter::addAttestationKey(Array& array,
 
 bool CborConverter::addKeyparameters(Array& array, const vector<KeyParameter>& keyParams) {
     Map map;
-    std::map<uint64_t, vector<uint8_t>> enum_repetition;
-    std::map<uint64_t, Array> uint_repetition;
+    std::map<uint32_t, vector<uint8_t>> enum_repetition;
+    std::map<uint32_t, Array> uint_repetition;
     for (auto& param : keyParams) {
         auto tag = legacy_enum_conversion(param.tag);
         switch (typeFromTag(tag)) {
         case KM_ENUM: {
             auto paramEnum = aidlEnumParam2Uint32(param);
             if (paramEnum.has_value()) {
-                map.add(static_cast<uint64_t>(tag), *paramEnum);
+                map.add(static_cast<uint32_t>(tag), *paramEnum);
             }
             break;
         }
         case KM_UINT:
             if (param.value.getTag() == KeyParameterValue::integer) {
-                auto intVal = param.value.get<KeyParameterValue::integer>();
-                map.add(static_cast<uint64_t>(tag), intVal);
+                uint32_t intVal = param.value.get<KeyParameterValue::integer>();
+                map.add(static_cast<uint32_t>(tag), intVal);
             }
             break;
         case KM_UINT_REP:
             if (param.value.getTag() == KeyParameterValue::integer) {
-                auto intVal = param.value.get<KeyParameterValue::integer>();
-                uint_repetition[static_cast<uint64_t>(tag)].add(intVal);
+                uint32_t intVal = param.value.get<KeyParameterValue::integer>();
+                uint_repetition[static_cast<uint32_t>(tag)].add(intVal);
             }
             break;
         case KM_ENUM_REP: {
             auto paramEnumRep = aidlEnumParam2Uint32(param);
             if (paramEnumRep.has_value()) {
-                enum_repetition[static_cast<uint64_t>(tag)].push_back(*paramEnumRep);
+                enum_repetition[static_cast<uint32_t>(tag)].push_back(*paramEnumRep);
             }
             break;
         }
         case KM_ULONG:
             if (param.value.getTag() == KeyParameterValue::longInteger) {
-                auto longVal = param.value.get<KeyParameterValue::longInteger>();
-                map.add(static_cast<uint64_t>(tag), longVal);
+                uint64_t longVal = param.value.get<KeyParameterValue::longInteger>();
+                map.add(static_cast<uint32_t>(tag), longVal);
             }
             break;
         case KM_ULONG_REP:
             if (param.value.getTag() == KeyParameterValue::longInteger) {
-                auto longVal = param.value.get<KeyParameterValue::longInteger>();
-                uint_repetition[static_cast<uint64_t>(tag & 0x00000000ffffffff)].add(longVal);
+                uint64_t longVal = param.value.get<KeyParameterValue::longInteger>();
+                uint_repetition[static_cast<uint32_t>(tag)].add(longVal);
             }
             break;
         case KM_DATE:
             if (param.value.getTag() == KeyParameterValue::dateTime) {
-                auto dateVal = param.value.get<KeyParameterValue::dateTime>();
-                map.add(static_cast<uint64_t>(tag), dateVal);
+                uint64_t dateVal = param.value.get<KeyParameterValue::dateTime>();
+                map.add(static_cast<uint32_t>(tag), dateVal);
             }
             break;
         case KM_BOOL:
-            map.add(static_cast<uint64_t>(tag), 1 /* true */);
+            map.add(static_cast<uint32_t>(tag), 1 /* true */);
             break;
         case KM_BIGNUM:
         case KM_BYTES:
             if (param.value.getTag() == KeyParameterValue::blob) {
                 const auto& value = param.value.get<KeyParameterValue::blob>();
-                map.add(static_cast<uint64_t>(tag & 0x00000000ffffffff), value);
+                map.add(static_cast<uint32_t>(tag), value);
             }
             break;
         case KM_INVALID:
