@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022 NXP
+ ** Copyright 2022-2023 NXP
  **
  *********************************************************************************/
 
@@ -47,9 +47,11 @@
 #endif
 
 namespace aidl::android::hardware::security::keymint {
-using namespace cppcose;
-using namespace keymaster;
-using namespace cppbor;
+using cppbor::Array;
+using cppbor::EncodedItem;
+using cppcose::kCoseMac0EntryCount;
+using cppcose::kCoseMac0Payload;
+using ::keymint::javacard::Instruction;
 // RKP error codes defined in keymint applet.
 constexpr keymaster_error_t kStatusFailed = static_cast<keymaster_error_t>(32000);
 constexpr keymaster_error_t kStatusInvalidMac = static_cast<keymaster_error_t>(32001);
