@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021-2022 NXP
+ *  Copyright 2021-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ void SBAccessController::updateBootState() {
         }
     }
     if (allCmdreceived) {
-        LOG(INFO) << "Early boot completed";
+        LOG(INFO) << "All allowlisted cmds received , mark Early boot completed";
         mBootState = BOOTSTATE::SB_EARLY_BOOT_ENDED;
     }
 }
@@ -142,7 +142,6 @@ bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
     if (cmdIns == EARLY_BOOT_ENDED_CMD) {
         // allowed as this is sent by VOLD only during early boot
         op_allowed = true;
-        mBootState = BOOTSTATE::SB_EARLY_BOOT_ENDED;
     }
     return op_allowed;
 }
