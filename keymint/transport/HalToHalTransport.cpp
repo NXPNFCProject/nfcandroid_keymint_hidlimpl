@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021 NXP
+ ** Copyright 2020-2021, 2023 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "HalToHalTransport"
@@ -68,7 +68,7 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
          status = mAppletConnection.openChannelToApplet(selectResponse);
          if (!status) {
              LOG(ERROR) << " Failed to open Logical Channel ,response " << selectResponse;
-             output = selectResponse;
+             output = std::move(selectResponse);
              return status;
          }
      }
