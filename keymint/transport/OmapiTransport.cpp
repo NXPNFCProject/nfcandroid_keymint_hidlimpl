@@ -126,7 +126,7 @@ bool OmapiTransport::initialize() {
             return false;
         }
 
-        mVSReaders[readerName] = reader;
+        mVSReaders[readerName] = std::move(reader);
     }
 
     // Find eSE reader, as of now assumption is only eSE available on device
@@ -259,7 +259,7 @@ bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& ou
     if (eSEReader != nullptr) {
         LOG(DEBUG) << "Sending apdu data to secure element: " << ESE_READER_PREFIX;
 #ifdef NXP_EXTNS
-        return internalProtectedTransmitApdu(eSEReader, apdu, output);
+        return internalProtectedTransmitApdu(eSEReader, std::move(apdu), output);
 #else
         return internalTransmitApdu(eSEReader, apdu, output);
 #endif
