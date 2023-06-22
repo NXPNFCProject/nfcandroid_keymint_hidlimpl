@@ -104,7 +104,6 @@ AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
 
   mAuthClearTimer.kill();
 
-  gTransport->setDefaultTimeout(DEFAULT_SESSION_TIMEOUT);
   clearAuthApprovedStatus();
 
   std::vector<uint8_t> resp;
@@ -135,7 +134,7 @@ AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
       clearAuthApprovedStatus();
     }
   }
-
+  gTransport->closeConnection();
   LOG(INFO) << StringPrintf("%s: Exit", __func__);
   return ::ndk::ScopedAStatus::ok();
 }
