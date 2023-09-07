@@ -29,7 +29,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022 NXP
+ *  Copyright 2022-2023 NXP
  *
  ******************************************************************************/
 #pragma once
@@ -55,7 +55,7 @@ using std::shared_ptr;
 class JavacardRemotelyProvisionedComponentDevice : public BnRemotelyProvisionedComponent {
   public:
     explicit JavacardRemotelyProvisionedComponentDevice(shared_ptr<JavacardSecureElement> card)
-        : card_(card) {}
+        : card_(std::move(card)) {}
 
     virtual ~JavacardRemotelyProvisionedComponentDevice() = default;
 

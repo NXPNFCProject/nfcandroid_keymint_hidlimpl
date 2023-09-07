@@ -65,7 +65,7 @@ void AuthSecret::clearAuthApprovedStatus() {
   std::vector<uint8_t> timeout;
   std::vector<uint8_t> input;
   bool status = gAuthSecretImplInstance->constructApdu(
-      Instruction::INS_CLEAR_APPROVED_STATUS, input, cmd, timeout);
+      Instruction::INS_CLEAR_APPROVED_STATUS, input, cmd, std::move(timeout));
   if (!status) {
     LOG(ERROR) << StringPrintf("%s: constructApdu failed", __func__);
     return;
@@ -96,7 +96,7 @@ AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
   std::vector<uint8_t> cmd;
   std::vector<uint8_t> timeout;
   bool status = gAuthSecretImplInstance->constructApdu(
-      Instruction::INS_VERIFY_PIN, in_secret, cmd, timeout);
+      Instruction::INS_VERIFY_PIN, in_secret, cmd, std::move(timeout));
   if (!status) {
     LOG(ERROR) << StringPrintf("%s: constructApdu failed", __func__);
     return ::ndk::ScopedAStatus::ok();
@@ -124,7 +124,7 @@ AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
   }
 
   uint64_t clearAuthTimeout =
-      gAuthSecretImplInstance->extractTimeoutValue(resp);
+      gAuthSecretImplInstance->extractTimeoutValue(std::move(resp));
   LOG(INFO) << StringPrintf("%s: AuthSecret Clear status Timeout = %ld secs",
                             __func__, clearAuthTimeout);
   if (clearAuthTimeout) {

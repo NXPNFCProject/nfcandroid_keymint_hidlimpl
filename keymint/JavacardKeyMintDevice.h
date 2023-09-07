@@ -29,7 +29,7 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 *
-*  Copyright 2022 NXP
+*  Copyright 2022-2023 NXP
 *
 ******************************************************************************/
 #pragma once
@@ -56,7 +56,7 @@ using std::vector;
 class JavacardKeyMintDevice : public BnKeyMintDevice {
   public:
     explicit JavacardKeyMintDevice(shared_ptr<JavacardSecureElement> card)
-        : securitylevel_(SecurityLevel::STRONGBOX), card_(card) {
+        : securitylevel_(SecurityLevel::STRONGBOX), card_(std::move(card)) {
         card_->initializeJavacard();
     }
     virtual ~JavacardKeyMintDevice() {}

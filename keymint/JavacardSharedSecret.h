@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022 NXP
+ *  Copyright 2022-2023 NXP
  *
  ******************************************************************************/
 #pragma once
@@ -37,7 +37,7 @@ using std::vector;
 
 class JavacardSharedSecret : public BnSharedSecret {
   public:
-    explicit JavacardSharedSecret(shared_ptr<JavacardSecureElement> card) : card_(card) {}
+    explicit JavacardSharedSecret(shared_ptr<JavacardSecureElement> card) : card_(std::move(card)) {}
     virtual ~JavacardSharedSecret() {}
 
     // Methods from ::ndk::ICInterface follow.
