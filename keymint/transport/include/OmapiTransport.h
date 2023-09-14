@@ -55,6 +55,9 @@
 
 #include <SBAccessController.h>
 
+#define APP_NOT_FOUND_SW1 0x6A
+#define APP_NOT_FOUND_SW2 0x82
+
 namespace keymint::javacard {
 using std::shared_ptr;
 using std::vector;
@@ -76,6 +79,15 @@ public:
 #endif
   }
 
+#ifdef NXP_EXTNS
+  /**
+   * Sets Applet Aid
+   */
+  bool setAppletAid(const vector<uint8_t> &aid) {
+    mSelectableAid = aid;
+    return true;
+  }
+#endif
     /**
      * Gets the binder instance of ISEService, gets te reader corresponding to secure element,
      * establishes a session and opens a basic channel.

@@ -354,6 +354,9 @@ bool OmapiTransport::internalProtectedTransmitApdu(
 
       if (!openChannelToApplet()) {
         LOG(ERROR) << "openLogicalChannel error: " << res.getMessage();
+        // Assume Applet selection Fail
+        transmitResponse.push_back(APP_NOT_FOUND_SW1);
+        transmitResponse.push_back(APP_NOT_FOUND_SW2);
         return false;
       }
       if (channel == nullptr) {
