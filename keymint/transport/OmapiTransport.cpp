@@ -383,14 +383,15 @@ bool OmapiTransport::internalProtectedTransmitApdu(
 
     status = false;
     if (mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
-        LOGD_OMAPI("constructed apdu: " << apdu);
-        res = channel->transmit(apdu, &transmitResponse);
-        status = true;
+#ifdef ENABLE_DEBUG_LOG
+      LOGD_OMAPI("constructed apdu: " << apdu);
+#endif
+      res = channel->transmit(apdu, &transmitResponse);
+      status = true;
     } else {
         LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
         prepareErrorRepsponse(transmitResponse);
     }
-
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
     if (mTimeout) {
