@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@
 #include <android-base/stringprintf.h>
 #include <cppbor.h>
 #include <cppbor_parse.h>
+
+// Timeout vaue in seconds for invalid data status
+#define INVALID_DATA_STATUS_TIMER_VALUE 0
 
 // Default timeout value in seconds for clear approved status.
 #define CLEAR_APPROVE_STATUS_TIMER_VALUE 60
