@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -66,34 +66,29 @@ bool AuthSecretHelper::constructApdu(Instruction ins,
 uint64_t AuthSecretHelper::extractTimeoutValue(std::vector<uint8_t> data) {
   LOG(INFO) << StringPrintf("%s: Enter", __func__);
 
-  uint64_t timeout = 0x00;
-
   auto [parsedData, _, errMsg] = cppbor::parse(data);
   if (!parsedData) {
     LOG(ERROR) << StringPrintf("parsedData is null");
-    return timeout;
+    return INVALID_DATA_STATUS_TIMER_VALUE;
   }
   auto dataArray = parsedData->asArray();
   if (!dataArray) {
     LOG(ERROR) << StringPrintf("parsedData is not proper CBOR Array");
-    return timeout;
+    return INVALID_DATA_STATUS_TIMER_VALUE;
   }
 
+  uint64_t timeout = CLEAR_APPROVE_STATUS_TIMER_VALUE;
   if ((dataArray->size() > 1) && (dataArray->get(INDEX_TIMER_VAL)->asBstr())) {
     std::vector<uint8_t> timeoutVector =
         dataArray->get(INDEX_TIMER_VAL)->asBstr()->value();
     if (timeoutVector.size() == TIMEOUT_VECTOR_SIZE) {
       timeout = (((timeoutVector[0] << 8) | (timeoutVector[1])) * 60 * 60) +
                 ((timeoutVector[2] << 8) | timeoutVector[3]);
-    } else {
-      timeout = CLEAR_APPROVE_STATUS_TIMER_VALUE;
     }
-  } else if (!timeout) {
-    timeout = CLEAR_APPROVE_STATUS_TIMER_VALUE;
   }
 
-  return timeout;
   LOG(INFO) << StringPrintf("%s:Exit", __func__);
+  return timeout;
 }
 
 bool AuthSecretHelper::checkVerifyStatus(std::vector<uint8_t> resp) {
