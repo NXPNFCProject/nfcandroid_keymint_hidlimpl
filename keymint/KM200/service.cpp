@@ -29,21 +29,22 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2023 NXP
+ ** Copyright 2020-2022 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox-service"
 
-#include <aidl/android/hardware/security/keymint/SecurityLevel.h>
 #include <android-base/logging.h>
-#include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
 
 #include "JavacardKeyMintDevice.h"
-#include "JavacardRemotelyProvisionedComponentDevice.h"
+#include <aidl/android/hardware/security/keymint/SecurityLevel.h>
+
 #include "JavacardSecureElement.h"
 #include "JavacardSharedSecret.h"
+#include "keymint_utils.h"
+#include "JavacardRemotelyProvisionedComponentDevice.h"
 #if defined OMAPI_TRANSPORT
 #include <OmapiTransport.h>
 #elif defined HAL_TO_HAL_TRANSPORT
@@ -51,23 +52,11 @@
 #else
 #include <SocketTransport.h>
 #endif
-#include "keymint_utils.h"
 
 using aidl::android::hardware::security::keymint::JavacardKeyMintDevice;
-using aidl::android::hardware::security::keymint::JavacardRemotelyProvisionedComponentDevice;
+using aidl::android::hardware::security::keymint::JavacardSharedSecret;
 using aidl::android::hardware::security::keymint::SecurityLevel;
-using aidl::android::hardware::security::sharedsecret::JavacardSharedSecret;
-using keymint::javacard::getOsPatchlevel;
-using keymint::javacard::getOsVersion;
-using keymint::javacard::getVendorPatchlevel;
-using keymint::javacard::ITransport;
-using keymint::javacard::JavacardSecureElement;
-#if defined OMAPI_TRANSPORT
-using keymint::javacard::OmapiTransport;
-#elif defined HAL_TO_HAL_TRANSPORT
-#else
-using keymint::javacard::SocketTransport;
-#endif
+using namespace keymint::javacard;
 
 const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
 
@@ -87,16 +76,16 @@ int main() {
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(
-            std::make_shared<OmapiTransport>(gStrongBoxAppletAID));
+        std::make_shared<JavacardSecureElement>(std::make_shared<OmapiTransport>(gStrongBoxAppletAID), getOsVersion(),
+                                                getOsPatchlevel(), getVendorPatchlevel());
 #elif defined HAL_TO_HAL_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(
-            std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
+        std::make_shared<JavacardSecureElement>(std::make_shared<HalToHalTransport>(gStrongBoxAppletAID), getOsVersion(),
+                                                getOsPatchlevel(), getVendorPatchlevel());
 #else
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(
-            std::make_shared<SocketTransport>(gStrongBoxAppletAID));
+        std::make_shared<JavacardSecureElement>(std::make_shared<SocketTransport>(gStrongBoxAppletAID), getOsVersion(),
+                                                getOsPatchlevel(), getVendorPatchlevel());
 #endif
     // Add Keymint Service
     addService<JavacardKeyMintDevice>(card);

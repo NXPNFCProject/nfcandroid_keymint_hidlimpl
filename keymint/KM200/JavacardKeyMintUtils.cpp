@@ -15,10 +15,8 @@
  */
 
 #include "JavacardKeyMintUtils.h"
-
-#include <cppbor.h>
-
 #include <android-base/logging.h>
+#include <cppbor.h>
 
 namespace aidl::android::hardware::security::keymint::km_utils {
 
@@ -57,6 +55,7 @@ KeyParameter kmEnumParam2Aidl(const keymaster_key_param_t& param) {
         return KeyParameter{Tag::INVALID, false};
     }
 }
+
 
 KeyParameter kmParam2Aidl(const keymaster_key_param_t& param) {
     auto tag = legacy_enum_conversion(param.tag);
@@ -146,6 +145,8 @@ keymaster_key_param_t aidlEnumParam2Km(const KeyParameter& param) {
     }
 }
 
+
+
 keymaster_error_t legacyHardwareAuthToken(const HardwareAuthToken& aidlToken,
                                           LegacyHardwareAuthToken* legacyToken) {
     legacyToken->challenge = aidlToken.challenge;
@@ -180,6 +181,7 @@ keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams
         const auto& param = keyParams[i];
         auto tag = legacy_enum_conversion(param.tag);
         switch (typeFromTag(tag)) {
+
         case KM_ENUM:
         case KM_ENUM_REP:
             set.params[i] = aidlEnumParam2Km(param);
@@ -236,4 +238,4 @@ keymaster_key_param_set_t aidlKeyParams2Km(const vector<KeyParameter>& keyParams
     return set;
 }
 
-}  // namespace aidl::android::hardware::security::keymint::km_utils
+}  // namespace aidl::android::hardware::security::keymint

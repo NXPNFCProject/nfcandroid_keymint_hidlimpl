@@ -15,21 +15,18 @@
  */
 
 #pragma once
-
-#include <vector>
-
-#include <aidl/android/hardware/security/keymint/HardwareAuthToken.h>
 #include <aidl/android/hardware/security/keymint/KeyParameter.h>
 #include <aidl/android/hardware/security/keymint/Tag.h>
+#include <aidl/android/hardware/security/keymint/HardwareAuthToken.h>
 #include <aidl/android/hardware/security/secureclock/ISecureClock.h>
-
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/android_keymaster_utils.h>
+#include <vector>
 
 namespace aidl::android::hardware::security::keymint::km_utils {
 using namespace ::keymaster;
-using ::ndk::ScopedAStatus;
 using secureclock::TimeStampToken;
+using ::ndk::ScopedAStatus;
 using std::vector;
 using LegacyHardwareAuthToken = ::keymaster::HardwareAuthToken;
 
@@ -90,4 +87,4 @@ class KmParamSet : public keymaster_key_param_set_t {
     ~KmParamSet() { keymaster_free_param_set(this); }
 };
 
-}  // namespace aidl::android::hardware::security::keymint::km_utils
+}  // namespace aidl::android::hardware::security::keymint

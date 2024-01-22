@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 // The original Work has been changed by NXP.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,20 +29,43 @@
 //
 // Copyright 2022-2023 NXP
 //
+
 package {
-    default_applicable_licenses: ["hardware_nxp_keymint_license"],
-}
-license {
-    name: "hardware_nxp_keymint_license",
-    visibility: [":__subpackages__"],
-    license_kinds: [
-        "SPDX-license-identifier-Apache-2.0",
-    ],
-    license_text: [
-        "LICENSE",
-        "NOTICE",
+    default_applicable_licenses: [
+        "//hardware/nxp/keymint:hardware_nxp_keymint_license",
     ],
 }
-subdirs = [
-    "KM200", "transport",
-]
+
+cc_library {
+    name: "libjc_keymint_transport.nxp",
+    vendor_available: true,
+    srcs: [
+        "*.cpp",
+    ],
+    cflags: [
+        "-DOMAPI_TRANSPORT",
+        "-DINTERVAL_TIMER",
+        "-DNXP_EXTNS",
+    ],
+    export_include_dirs: [
+        "include"
+    ],
+    export_shared_lib_headers: [
+        "android.hardware.secure_element@1.0",
+        "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
+    ],
+    shared_libs: [
+        "android.hardware.secure_element@1.0",
+        "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
+        "android.se.omapi-V1-ndk",
+        "libbase",
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libhardware",
+        "libhidlbase",
+        "libbinder_ndk",
+    ],
+}

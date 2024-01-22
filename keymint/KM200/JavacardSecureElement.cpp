@@ -16,55 +16,29 @@
 
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardSecureElement.h"
+#include "keymint_utils.h"
 
 #include <algorithm>
+#include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <iostream>
 #include <iterator>
+#include <keymaster/android_keymaster_messages.h>
 #include <memory>
 #include <regex.h>
 #include <string>
 #include <vector>
 
-#include <android-base/logging.h>
-#include <android-base/properties.h>
-#include <keymaster/android_keymaster_messages.h>
-
-#include "keymint_utils.h"
-
 namespace keymint::javacard {
 
+using namespace ::keymaster;
 keymaster_error_t JavacardSecureElement::initializeJavacard() {
     Array request;
     request.add(Uint(getOsVersion()));
     request.add(Uint(getOsPatchlevel()));
     request.add(Uint(getVendorPatchlevel()));
-    auto [item, err] = sendRequest(Instruction::INS_INIT_STRONGBOX_CMD, request);
+    auto [item, err] = sendRequest(Instruction::INS_SET_BOOT_PARAMS_CMD, request);
     return err;
-}
-
-void JavacardSecureElement::setDeleteAllKeysPending() {
-    isDeleteAllKeysPending = true;
-}
-void JavacardSecureElement::setEarlyBootEndedPending() {
-    isEarlyBootEndedPending = true;
-}
-void JavacardSecureElement::sendPendingEvents() {
-    if (isDeleteAllKeysPending) {
-      auto [_, err] = sendRequest(Instruction::INS_DELETE_ALL_KEYS_CMD);
-      if (err == KM_ERROR_OK) {
-        isDeleteAllKeysPending = false;
-      } else {
-        LOG(ERROR) << "Error in sending deleteAllKeys.";
-      }
-    }
-    if (isEarlyBootEndedPending) {
-      auto [_, err] = sendRequest(Instruction::INS_EARLY_BOOT_ENDED_CMD);
-      if (err == KM_ERROR_OK) {
-        isEarlyBootEndedPending = false;
-      } else {
-        LOG(ERROR) << "Error in sending earlyBootEnded.";
-      }
-    }
 }
 
 keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
@@ -77,9 +51,9 @@ keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
 
     if (USHRT_MAX >= inputData.size()) {
         // Send extended length APDU always as response size is not known to HAL.
-        // Case 1: Lc > 0  CLS | INS | P1 | P2 | 00 | 2 bytes of Lc | CommandData |
-        // 2 bytes of Le all set to 00. Case 2: Lc = 0  CLS | INS | P1 | P2 | 3
-        // bytes of Le all set to 00. Extended length 3 bytes, starts with 0x00
+        // Case 1: Lc > 0  CLS | INS | P1 | P2 | 00 | 2 bytes of Lc | CommandData | 2 bytes of Le
+        // all set to 00. Case 2: Lc = 0  CLS | INS | P1 | P2 | 3 bytes of Le all set to 00.
+        // Extended length 3 bytes, starts with 0x00
         apduOut.push_back(static_cast<uint8_t>(0x00));
         if (inputData.size() > 0) {
             apduOut.push_back(static_cast<uint8_t>(inputData.size() >> 8));
@@ -114,8 +88,8 @@ keymaster_error_t JavacardSecureElement::sendData(Instruction ins, std::vector<u
         return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
 
-    // Response size should be greater than 2. Cbor output data followed by two
-    // bytes of APDU status.
+    // Response size should be greater than 2. Cbor output data followed by two bytes of APDU
+    // status.
     if ((response.size() <= 2) || (getApduStatus(response) != APDU_RESP_STATUS_OK)) {
         LOG(ERROR) << "Response of the sendData is wrong: response size = " << response.size()
                    << " apdu status = " << getApduStatus(response);
