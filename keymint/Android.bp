@@ -43,5 +43,5 @@ license {
     ],
 }
 subdirs = [
-    "KM200", "transport",
+    "KM200","KM300", "transport",
 ]
