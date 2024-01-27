@@ -14,31 +14,31 @@
  * limitations under the License.
  */
 /******************************************************************************
-*
-*  The original Work has been changed by NXP.
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  Copyright 2022 NXP
-*
-******************************************************************************/
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2022-2023 NXP
+ *
+ ******************************************************************************/
 #pragma once
 
 #include "CborConverter.h"
 #include <ITransport.h>
 
 #define APDU_CLS 0x80
-//#define APDU_P1 0x50
+// #define APDU_P1 0x50
 #define APDU_P1 0x40
 #define APDU_P2 0x00
 #define APDU_RESP_STATUS_OK 0x9000
@@ -98,11 +98,12 @@ enum class Instruction {
 
 class JavacardSecureElement {
   public:
-    explicit JavacardSecureElement(shared_ptr<ITransport> transport, uint32_t osVersion,
-                                   uint32_t osPatchLevel, uint32_t vendorPatchLevel)
-        : transport_(transport), osVersion_(osVersion), osPatchLevel_(osPatchLevel),
-          vendorPatchLevel_(vendorPatchLevel) {
-        transport_->openConnection();
+    explicit JavacardSecureElement(shared_ptr<ITransport> transport,
+                                   uint32_t osVersion, uint32_t osPatchLevel,
+                                   uint32_t vendorPatchLevel)
+        : transport_(std::move(transport)), osVersion_(osVersion),
+          osPatchLevel_(osPatchLevel), vendorPatchLevel_(vendorPatchLevel) {
+      transport_->openConnection();
     }
     virtual ~JavacardSecureElement() { transport_->closeConnection(); }
 

@@ -29,7 +29,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022 NXP
+ *  Copyright 2022-2023 NXP
  *
  ******************************************************************************/
 
@@ -46,33 +46,35 @@
 #include "JavacardSecureElement.h"
 
 namespace aidl::android::hardware::security::keymint {
-using namespace ::keymint::javacard;
+using ::keymint::javacard::CborConverter;
+using ::keymint::javacard::JavacardSecureElement;
 using ndk::ScopedAStatus;
+using std::shared_ptr;
 
 class JavacardRemotelyProvisionedComponentDevice
     : public BnRemotelyProvisionedComponent {
  public:
-  explicit JavacardRemotelyProvisionedComponentDevice(
-      shared_ptr<JavacardSecureElement> card)
-      : card_(card) {}
+   explicit JavacardRemotelyProvisionedComponentDevice(
+       shared_ptr<JavacardSecureElement> card)
+       : card_(std::move(card)) {}
 
-  virtual ~JavacardRemotelyProvisionedComponentDevice() = default;
+   virtual ~JavacardRemotelyProvisionedComponentDevice() = default;
 
-  // Methods from ::ndk::ICInterface follow.
-  binder_status_t dump(int fd, const char** args, uint32_t num_args) override;
+   // Methods from ::ndk::ICInterface follow.
+   binder_status_t dump(int fd, const char **args, uint32_t num_args) override;
 
-  ScopedAStatus getHardwareInfo(RpcHardwareInfo* info) override;
+   ScopedAStatus getHardwareInfo(RpcHardwareInfo *info) override;
 
-  ScopedAStatus generateEcdsaP256KeyPair(
-      bool testMode, MacedPublicKey* macedPublicKey,
-      std::vector<uint8_t>* privateKeyHandle) override;
+   ScopedAStatus
+   generateEcdsaP256KeyPair(bool testMode, MacedPublicKey *macedPublicKey,
+                            std::vector<uint8_t> *privateKeyHandle) override;
 
-  ScopedAStatus generateCertificateRequest(
-      bool testMode, const std::vector<MacedPublicKey>& keysToSign,
-      const std::vector<uint8_t>& endpointEncCertChain,
-      const std::vector<uint8_t>& challenge, DeviceInfo* deviceInfo,
-      ProtectedData* protectedData,
-      std::vector<uint8_t>* keysToSignMac) override;
+   ScopedAStatus generateCertificateRequest(
+       bool testMode, const std::vector<MacedPublicKey> &keysToSign,
+       const std::vector<uint8_t> &endpointEncCertChain,
+       const std::vector<uint8_t> &challenge, DeviceInfo *deviceInfo,
+       ProtectedData *protectedData,
+       std::vector<uint8_t> *keysToSignMac) override;
 
  private:
   ScopedAStatus beginSendData(bool testMode,

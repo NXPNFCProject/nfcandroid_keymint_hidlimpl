@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 /******************************************************************************
-*
-*  The original Work has been changed by NXP.
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  Copyright 2022 NXP
-*
-******************************************************************************/
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2022-2023 NXP
+ *
+ ******************************************************************************/
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardKeyMintDevice.h"
 #include "JavacardKeyMintOperation.h"
@@ -52,9 +52,14 @@
 #include <vector>
 
 namespace aidl::android::hardware::security::keymint {
-using km_utils::KmParamSet;
-using namespace ::keymaster;
-using namespace ::keymint::javacard;
+using cppbor::Array;
+using cppbor::Bstr;
+using cppbor::Uint;
+using ::keymaster::AuthorizationSet;
+using ::keymaster::dup_buffer;
+using ::keymaster::KeymasterBlob;
+using ::keymaster::KeymasterKeyBlob;
+using ::keymint::javacard::Instruction;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 1;
@@ -91,7 +96,7 @@ ScopedAStatus JavacardKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) 
 ScopedAStatus JavacardKeyMintDevice::generateKey(const vector<KeyParameter>& keyParams,
                                                  const optional<AttestationKey>& attestationKey,
                                                  KeyCreationResult* creationResult) {
-    cppbor::Array array;
+    Array array;
     // add key params
     cbor_.addKeyparameters(array, keyParams);
     // add attestation key if any
@@ -111,7 +116,7 @@ ScopedAStatus JavacardKeyMintDevice::generateKey(const vector<KeyParameter>& key
 }
 
 ScopedAStatus JavacardKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
-    cppbor::Array request;
+    Array request;
     // add key data
     request.add(Bstr(data));
     auto [item, err] = card_->sendRequest(Instruction::INS_ADD_RNG_ENTROPY_CMD, request);
@@ -127,7 +132,7 @@ ScopedAStatus JavacardKeyMintDevice::importKey(const vector<KeyParameter>& keyPa
                                                const optional<AttestationKey>& attestationKey,
                                                KeyCreationResult* creationResult) {
 
-    cppbor::Array request;
+    Array request;
     // add key params
     cbor_.addKeyparameters(request, keyParams);
     // add key format
@@ -158,7 +163,7 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
                                                       const vector<KeyParameter>& unwrappingParams,
                                                       int64_t passwordSid, int64_t biometricSid,
                                                       KeyCreationResult* creationResult) {
-    cppbor::Array request;
+    Array request;
     std::unique_ptr<Item> item;
     vector<uint8_t> keyBlob;
     std::vector<uint8_t> response;
@@ -234,7 +239,7 @@ JavacardKeyMintDevice::sendFinishImportWrappedKeyCmd(
 ScopedAStatus JavacardKeyMintDevice::upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
                                                 const vector<KeyParameter>& upgradeParams,
                                                 vector<uint8_t>* keyBlob) {
-    cppbor::Array request;
+    Array request;
     // add key blob
     request.add(Bstr(keyBlobToUpgrade));
     // add key params
@@ -285,7 +290,7 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
                                            const std::optional<HardwareAuthToken>& authToken,
                                            BeginResult* result) {
 
-    cppbor::Array array;
+    Array array;
     std::vector<uint8_t> response;
     // make request
     array.add(Uint(static_cast<uint64_t>(purpose)));
@@ -361,7 +366,7 @@ ScopedAStatus JavacardKeyMintDevice::earlyBootEnded() {
 ScopedAStatus JavacardKeyMintDevice::getKeyCharacteristics(
     const std::vector<uint8_t>& keyBlob, const std::vector<uint8_t>& appId,
     const std::vector<uint8_t>& appData, std::vector<KeyCharacteristics>* result) {
-    cppbor::Array request;
+    Array request;
     request.add(vector<uint8_t>(keyBlob));
     request.add(vector<uint8_t>(appId));
     request.add(vector<uint8_t>(appData));
