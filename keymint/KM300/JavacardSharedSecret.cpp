@@ -14,7 +14,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2021-2022 NXP
+ ** Copyright 2021-2022, 2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -42,7 +42,8 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
     }
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
 #ifdef NXP_EXTNS
-    if (err != KM_ERROR_OK && (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
+    if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED &&
+        (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
         getSharedSecretRetryCount++;
     } else if (err != KM_ERROR_OK) {
         std::vector<uint8_t> refNonceSeed = {
