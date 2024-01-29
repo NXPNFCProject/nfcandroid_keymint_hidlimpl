@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -316,6 +316,10 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     //auto mSEListener = std::make_shared<SEListener>();
     std::vector<uint8_t> selectResponse = {};
     const std::vector<uint8_t> sbAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+    bool isSBAppletAID = false;
+    if (sbAppletAID == mSelectableAid) {
+        isSBAppletAID = true;
+    }
 
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
@@ -346,11 +350,11 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
-      if (!mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
-        LOG(ERROR) << "Select / Command INS not allowed";
-        prepareErrorRepsponse(transmitResponse);
-        return false;
-      }
+        if (isSBAppletAID && !mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+            LOG(ERROR) << "Select / Command INS not allowed";
+            prepareErrorRepsponse(transmitResponse);
+            return false;
+        }
 
       if (!openChannelToApplet()) {
         LOG(ERROR) << "openLogicalChannel error: " << res.getMessage();
@@ -376,21 +380,21 @@ bool OmapiTransport::internalProtectedTransmitApdu(
           LOG(ERROR) << "Failed to select the Applet.";
           return false;
       }
-      if (sbAppletAID == mSelectableAid) {
-        mSBAccessController.parseResponse(selectResponse);
+      if (isSBAppletAID) {
+          mSBAccessController.parseResponse(selectResponse);
       }
     }
 
     status = false;
-    if (mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+    if (isSBAppletAID && mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
 #ifdef ENABLE_DEBUG_LOG
       LOGD_OMAPI("constructed apdu: " << apdu);
 #endif
       res = channel->transmit(apdu, &transmitResponse);
       status = true;
     } else {
-        LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
-        prepareErrorRepsponse(transmitResponse);
+      LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
+      prepareErrorRepsponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
