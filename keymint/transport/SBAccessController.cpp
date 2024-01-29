@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021-2023 NXP
+ *  Copyright 2021-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ namespace keymint::javacard {
 
 static bool g_AccessAllowed = true;
 static bool g_IsCryptoOperationRunning = false;
+static uint8_t g_NumOfCryptoOps = 0;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
 // Allow listed cmds
@@ -119,11 +120,16 @@ bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
     if (g_AccessAllowed) {
         op_allowed = true;
         if (cmdIns == BEGIN_OPERATION_CMD) {
+            g_NumOfCryptoOps++;
             g_IsCryptoOperationRunning = true;
             startTimer(true, mTimerCrypto, CRYPTO_OP_SESSION_TIMEOUT, CryptoOpTimerFunc);
         } else if (cmdIns == FINISH_OPERATION_CMD || cmdIns == ABORT_OPERATION_CMD) {
-            g_IsCryptoOperationRunning = false;
-            startTimer(false, mTimerCrypto, 0, nullptr);
+            g_NumOfCryptoOps--;
+            if (g_NumOfCryptoOps == 0) {
+                LOG(INFO) << "All crypto operations finished";
+                g_IsCryptoOperationRunning = false;
+                startTimer(false, mTimerCrypto, 0, nullptr);
+            }
         }
     } else {
         switch (mBootState) {
