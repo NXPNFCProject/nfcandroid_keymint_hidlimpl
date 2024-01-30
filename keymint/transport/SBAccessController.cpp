@@ -42,6 +42,7 @@ std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/
 static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
     LOG(DEBUG) << "CryptoOperation timer expired";
+    g_NumOfCryptoOps = 0;
 }
 
 static void AccessTimerFunc(union sigval arg) {

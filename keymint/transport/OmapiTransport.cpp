@@ -386,7 +386,8 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
     status = false;
-    if (isSBAppletAID && mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+    if (!isSBAppletAID ||
+        mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
 #ifdef ENABLE_DEBUG_LOG
       LOGD_OMAPI("constructed apdu: " << apdu);
 #endif
