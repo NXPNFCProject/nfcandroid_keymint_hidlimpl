@@ -44,6 +44,7 @@ static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
     LOG(DEBUG) << "CryptoOperation timer expired";
     g_IsCryptoOperationRunning = false;
+    g_NumOfCryptoOps = 0;
 }
 
 static void AccessTimerFunc(union sigval arg) {
