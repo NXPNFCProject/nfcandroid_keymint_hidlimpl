@@ -29,7 +29,7 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 *
-*  Copyright 2022-2023 NXP
+*  Copyright 2022-2024 NXP
 *
 ******************************************************************************/
 #pragma once
@@ -101,7 +101,7 @@ class JavacardSecureElement {
   public:
     explicit JavacardSecureElement(shared_ptr<ITransport> transport)
         : transport_(std::move(transport)), isEarlyBootEndedPending(false),
-          isDeleteAllKeysPending(false) {
+          isDeleteAllKeysPending(false), isCardInitialized(false) {
       transport_->openConnection();
     }
     virtual ~JavacardSecureElement() { transport_->closeConnection(); }
@@ -133,6 +133,7 @@ class JavacardSecureElement {
     shared_ptr<ITransport> transport_;
     bool isEarlyBootEndedPending;
     bool isDeleteAllKeysPending;
+    bool isCardInitialized;
     CborConverter cbor_;
 };
 }  // namespace keymint::javacard
