@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021 NXP
+ *  Copyright 2021,2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -40,6 +40,12 @@ enum BOOTSTATE {
     SB_EARLY_BOOT = 0,
     SB_EARLY_BOOT_ENDED,
 };
+
+enum OPERATION_STATE {
+    OP_STARTED = 0,
+    OP_FINISHED,
+};
+
 namespace keymint::javacard {
 class SBAccessController {
   public:
@@ -64,6 +70,13 @@ class SBAccessController {
      * Returns : void
      */
     void parseResponse(std::vector<uint8_t>& responseApdu);
+
+    /**
+     * Sets the state of crypto operation
+     * Params : crypto operation start/finish
+     * Returns : void
+     */
+    void setCryptoOperationState(uint8_t opState);
 
     /**
      * Determines if current INS is allowed

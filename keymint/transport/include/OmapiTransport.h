@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #if defined OMAPI_TRANSPORT
@@ -87,6 +87,12 @@ public:
     mSelectableAid = aid;
     return true;
   }
+
+  /**
+   * Sets state(start/finish) of crypto operation.
+   * This is required for channel session timeout mgmt.
+   */
+  void setCryptoOperationState(uint8_t state) override;
 #endif
     /**
      * Gets the binder instance of ISEService, gets te reader corresponding to secure element,

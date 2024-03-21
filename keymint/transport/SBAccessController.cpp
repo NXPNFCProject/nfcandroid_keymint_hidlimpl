@@ -31,8 +31,7 @@
 namespace keymint::javacard {
 
 static bool g_AccessAllowed = true;
-static bool g_IsCryptoOperationRunning = false;
-static uint8_t g_NumOfCryptoOps = 0;
+static std::atomic<uint8_t> g_NumOfCryptoOps = 0;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
 // Allow listed cmds
@@ -43,7 +42,6 @@ std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/
 static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
     LOG(DEBUG) << "CryptoOperation timer expired";
-    g_IsCryptoOperationRunning = false;
     g_NumOfCryptoOps = 0;
 }
 
@@ -80,7 +78,7 @@ int SBAccessController::getSessionTimeout() {
         return (mBootState == BOOTSTATE::SB_EARLY_BOOT_ENDED) ? SMALLEST_SESSION_TIMEOUT
                                                               : UPGRADE_SESSION_TIMEOUT;
     } else {
-        return g_IsCryptoOperationRunning ? CRYPTO_OP_SESSION_TIMEOUT : REGULAR_SESSION_TIMEOUT;
+        return (g_NumOfCryptoOps > 0) ? CRYPTO_OP_SESSION_TIMEOUT : REGULAR_SESSION_TIMEOUT;
     }
 }
 bool SBAccessController::isSelectAllowed() {
@@ -116,22 +114,23 @@ void SBAccessController::updateBootState() {
         mBootState = BOOTSTATE::SB_EARLY_BOOT_ENDED;
     }
 }
+void SBAccessController::setCryptoOperationState(uint8_t opState) {
+    if (opState == OPERATION_STATE::OP_STARTED) {
+        g_NumOfCryptoOps++;
+        startTimer(true, mTimerCrypto, CRYPTO_OP_SESSION_TIMEOUT, CryptoOpTimerFunc);
+    } else if (opState == OPERATION_STATE::OP_FINISHED) {
+        if (g_NumOfCryptoOps > 0) g_NumOfCryptoOps--;
+        if (g_NumOfCryptoOps == 0) {
+            LOG(INFO) << "All crypto operations finished";
+            startTimer(false, mTimerCrypto, 0, nullptr);
+        }
+    }
+    LOG(INFO) << "Number of operations running: " << std::to_string(g_NumOfCryptoOps);
+}
 bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
     bool op_allowed = false;
     if (g_AccessAllowed) {
         op_allowed = true;
-        if (cmdIns == BEGIN_OPERATION_CMD) {
-            g_NumOfCryptoOps++;
-            g_IsCryptoOperationRunning = true;
-            startTimer(true, mTimerCrypto, CRYPTO_OP_SESSION_TIMEOUT, CryptoOpTimerFunc);
-        } else if (cmdIns == FINISH_OPERATION_CMD || cmdIns == ABORT_OPERATION_CMD) {
-            g_NumOfCryptoOps--;
-            if (g_NumOfCryptoOps == 0) {
-                LOG(INFO) << "All crypto operations finished";
-                g_IsCryptoOperationRunning = false;
-                startTimer(false, mTimerCrypto, 0, nullptr);
-            }
-        }
     } else {
         switch (mBootState) {
             case BOOTSTATE::SB_EARLY_BOOT: {
