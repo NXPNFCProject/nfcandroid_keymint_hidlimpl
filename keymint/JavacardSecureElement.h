@@ -96,6 +96,9 @@ enum class Instruction {
     INS_GET_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 46,
     INS_SEND_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 47,
 };
+#ifdef NXP_EXTNS
+enum CryptoOperationState { STARTED = 0, FINISHED };
+#endif
 
 class JavacardSecureElement {
   public:
@@ -121,7 +124,9 @@ class JavacardSecureElement {
     void sendPendingEvents();
     void setEarlyBootEndedPending();
     void setDeleteAllKeysPending();
-
+#ifdef NXP_EXTNS
+    void setOperationState(CryptoOperationState state);
+#endif
     inline uint16_t getApduStatus(std::vector<uint8_t>& inputData) {
         // Last two bytes are the status SW0SW1
         uint8_t SW0 = inputData.at(inputData.size() - 2);

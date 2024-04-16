@@ -466,7 +466,19 @@ bool OmapiTransport::openChannelToApplet() {
   return false;
 }
 
-#endif
+void OmapiTransport::setCryptoOperationState(uint8_t state) {
+    mSBAccessController.setCryptoOperationState(state);
+
+    int timeout = mSBAccessController.getSessionTimeout();
+
+    LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
+    if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
+        LOG(ERROR) << "Set Timer Failed !!!";
+        closeChannel();
+    }
+}
+
+#endif  // NXP_EXTNS
 
 }  // namespace keymint::javacard
 #endif // OMAPI_TRANSPORT
