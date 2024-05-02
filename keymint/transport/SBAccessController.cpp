@@ -37,7 +37,8 @@ static std::atomic<uint8_t> g_NumOfCryptoOps = 0;
 // Allow listed cmds
 std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
                                             {0x2A /*INS_COMPUTE_SHARED_HMAC*/, 0},
-                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0}};
+                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
+                                            {0x4D /*INS_GET_ROT_CHALLENGE_CMD*/, 0}};
 
 static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
@@ -50,7 +51,10 @@ static void AccessTimerFunc(union sigval arg) {
     LOG(DEBUG) << "Applet access-block timer expired";
     g_AccessAllowed = true;
 }
-
+SBAccessController& SBAccessController::getInstance() {
+    static SBAccessController sb_access_cntrl;
+    return sb_access_cntrl;
+}
 void SBAccessController::startTimer(bool isStart, IntervalTimer& t, int timeout,
                                     void (*timerFunc)(union sigval)) {
     t.kill();
@@ -145,8 +149,8 @@ bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
                 break;
         }
     }
-    if (cmdIns == EARLY_BOOT_ENDED_CMD) {
-        // allowed as this is sent by VOLD only during early boot
+    if (cmdIns == EARLY_BOOT_ENDED_CMD || cmdIns == INS_SEND_ROT_DATA_CMD) {
+        // allowed as these may be received during early boot
         op_allowed = true;
     }
     return op_allowed;

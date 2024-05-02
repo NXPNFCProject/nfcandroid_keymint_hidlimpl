@@ -65,6 +65,7 @@ using keymint::javacard::JavacardSecureElement;
 #if defined OMAPI_TRANSPORT
 using keymint::javacard::OmapiTransport;
 #elif defined HAL_TO_HAL_TRANSPORT
+using keymint::javacard::HalToHalTransport;
 #else
 using keymint::javacard::SocketTransport;
 #endif

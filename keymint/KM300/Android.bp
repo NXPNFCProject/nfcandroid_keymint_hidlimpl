@@ -53,6 +53,7 @@ cc_library {
     cflags:[
         "-O0",
         "-DNXP_EXTNS",
+        "-DINIT_USING_SEHAL_TRANSPORT",
     ],
     shared_libs: [
         "android.hardware.security.rkp-V3-ndk",
@@ -68,10 +69,12 @@ cc_library {
         "liblog",
         "libcrypto",
         "libcutils",
+        "libutils",
         "libjc_keymint_transport.nxp",
         "libbinder_ndk",
         "libmemunreachable",
         "android.hardware.security.keymint-V3-ndk",
+        "android.hardware.secure_element-V1-ndk",
     ],
     export_include_dirs: [
         ".",
@@ -115,6 +118,7 @@ cc_binary {
         "libutils",
         "libhidlbase",
         "android.hardware.security.keymint-V3-ndk",
+        "android.hardware.secure_element-V1-ndk",
     ],
     srcs: [
         "service.cpp",

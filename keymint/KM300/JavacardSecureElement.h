@@ -78,7 +78,7 @@ enum class Instruction {
     INS_UPDATE_AAD_OPERATION_CMD = KEYMINT_CMD_APDU_START + 23,
     INS_BEGIN_IMPORT_WRAPPED_KEY_CMD = KEYMINT_CMD_APDU_START + 24,
     INS_FINISH_IMPORT_WRAPPED_KEY_CMD = KEYMINT_CMD_APDU_START + 25,
-    //INS_INIT_STRONGBOX_CMD = KEYMINT_CMD_APDU_START + 26,
+    // INS_INIT_STRONGBOX_CMD = KEYMINT_CMD_APDU_START + 26,
     INS_INIT_STRONGBOX_CMD = KEYMINT_VENDOR_CMD_APDU_START + 9,
     // RKP Commands
     INS_GET_RKP_HARDWARE_INFO = KEYMINT_CMD_APDU_START + 27,
@@ -103,22 +103,29 @@ enum CryptoOperationState { STARTED = 0, FINISHED };
 class JavacardSecureElement {
   public:
     explicit JavacardSecureElement(shared_ptr<ITransport> transport)
-        : transport_(std::move(transport)), isEarlyBootEndedPending(false),
-          isDeleteAllKeysPending(false), isCardInitialized(false) {
-      transport_->openConnection();
+        : transport_(std::move(transport)),
+          isEarlyBootEndedPending(false),
+          isDeleteAllKeysPending(false),
+          isCardInitPending(true) {
+        transport_->openConnection();
     }
     virtual ~JavacardSecureElement() { transport_->closeConnection(); }
 
     std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(Instruction ins,
-                                                                     Array& request);
+                                                                     const Array& request);
     std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(Instruction ins);
-    std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(Instruction ins,
-                                                                     std::vector<uint8_t>& command);
+    std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(
+        Instruction ins, const std::vector<uint8_t>& command);
 
-    keymaster_error_t sendData(Instruction ins, std::vector<uint8_t>& inData,
+    std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequestSeHal(
+        Instruction ins, const std::vector<uint8_t>& command);
+    std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequestSeHal(Instruction ins);
+
+    bool closeSEHal();
+
+    keymaster_error_t sendData(Instruction ins, const std::vector<uint8_t>& inData,
                                std::vector<uint8_t>& response);
-
-    keymaster_error_t constructApduMessage(Instruction& ins, std::vector<uint8_t>& inputData,
+    keymaster_error_t constructApduMessage(Instruction& ins, const std::vector<uint8_t>& inputData,
                                            std::vector<uint8_t>& apduOut);
     keymaster_error_t initializeJavacard();
     void sendPendingEvents();
@@ -135,10 +142,17 @@ class JavacardSecureElement {
     }
 
   private:
+    bool initSEHal();
+    keymaster_error_t sendData(const std::shared_ptr<ITransport>& transport, Instruction ins,
+                               const std::vector<uint8_t>& inData, std::vector<uint8_t>& response);
+    std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(
+        const std::shared_ptr<ITransport>& transport, Instruction ins,
+        const std::vector<uint8_t>& command);
     shared_ptr<ITransport> transport_;
+    shared_ptr<ITransport> seHalTransport;
     bool isEarlyBootEndedPending;
     bool isDeleteAllKeysPending;
-    bool isCardInitialized;
+    bool isCardInitPending;
     CborConverter cbor_;
 };
 }  // namespace keymint::javacard

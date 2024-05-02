@@ -57,27 +57,30 @@ bool HalToHalTransport::openConnection() {
 }
 
 bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& output) {
-    bool status = false;
     std::vector<uint8_t> cApdu(inData);
 #ifdef INTERVAL_TIMER
      LOGD_OMAPI("stop the timer");
      mTimer.kill();
 #endif
      if (!isConnected()) {
-         std::vector<uint8_t> selectResponse;
-         status = mAppletConnection.openChannelToApplet(selectResponse);
-         if (!status) {
-             LOG(ERROR) << " Failed to open Logical Channel ,response " << selectResponse;
-             output = std::move(selectResponse);
-             return status;
+         if (!openConnection()) {
+             return false;
          }
+     }
+     std::vector<uint8_t> selectResponse;
+     bool status = mAppletConnection.openChannelToApplet(selectResponse);
+     if (!status) {
+         LOG(ERROR) << " Failed to open Logical Channel ,response " << selectResponse;
+         output = std::move(selectResponse);
+         return false;
      }
     status = mAppletConnection.transmit(cApdu, output);
     if (output.size() < 2 ||
         (output.size() >= 2 && (output.at(output.size() - 2) == LOGICAL_CH_NOT_SUPPORTED_SW1 &&
                                 output.at(output.size() - 1) == LOGICAL_CH_NOT_SUPPORTED_SW2))) {
         LOGD_OMAPI("transmit failed ,close the channel");
-        return mAppletConnection.close();
+        mAppletConnection.close();
+        return false;
     }
 #ifdef INTERVAL_TIMER
      int timeout = mAppletConnection.getSessionTimeout();
@@ -88,7 +91,7 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
        mTimer.set(mAppletConnection.getSessionTimeout(), this, SessionTimerFunc);
      }
 #endif
-    return status;
+     return true;
 }
 
 bool HalToHalTransport::closeConnection() {
@@ -96,6 +99,6 @@ bool HalToHalTransport::closeConnection() {
 }
 
 bool HalToHalTransport::isConnected() {
-    return mAppletConnection.isChannelOpen();
+    return mAppletConnection.isServiceConnected();
 }
 } // namespace keymint::javacard
