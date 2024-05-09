@@ -53,7 +53,7 @@ cc_library {
     cflags:[
         "-O0",
         "-DNXP_EXTNS",
-        "-DINIT_USING_SEHAL_TRANSPORT",
+        //"-DINIT_USING_SEHAL_TRANSPORT",
     ],
     shared_libs: [
         "android.hardware.security.rkp-V3-ndk",
