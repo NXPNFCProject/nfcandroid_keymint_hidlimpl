@@ -35,9 +35,8 @@ static std::atomic<uint8_t> g_NumOfCryptoOps = 0;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
 // Allow listed cmds
-std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
+std::map<uint8_t, uint8_t> allowedCmdIns = {{0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
                                             {0x2A /*INS_COMPUTE_SHARED_HMAC*/, 0},
-                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
                                             {0x4D /*INS_GET_ROT_CHALLENGE_CMD*/, 0}};
 
 static void CryptoOpTimerFunc(union sigval arg) {
