@@ -108,7 +108,7 @@ bool AppletConnection::connectToSEService() {
     } else {
         mSecureElementCallback = SharedRefBase::make<SecureElementCallback>();
         auto status = mSecureElement->init(mSecureElementCallback);
-        connected = status.isOk();
+        connected = status.isOk() && mSecureElementCallback->isClientConnected();
         if (!connected) {
             LOG(ERROR) << "Failed to initialize SE HAL service";
         }
