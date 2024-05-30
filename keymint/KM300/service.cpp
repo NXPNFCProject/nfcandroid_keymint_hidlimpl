@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2023 NXP
+ ** Copyright 2020-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox-service"
