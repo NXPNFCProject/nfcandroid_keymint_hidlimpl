@@ -37,6 +37,6 @@ cc_binary {
         "libbinder_ndk",
         "android.se.omapi-V1-ndk",
         "libjc_keymint_transport.nxp",
-        "libcppbor_external",
+        "libcppbor",
     ],
 }
