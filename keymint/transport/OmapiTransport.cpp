@@ -47,6 +47,7 @@
 
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
+#include <hardware_legacy/power.h>
 
 #include <EseTransportUtils.h>
 #include <IntervalTimer.h>
@@ -63,6 +64,7 @@ namespace keymint::javacard {
 
 std::string const ESE_READER_PREFIX = "eSE";
 constexpr const char omapiServiceName[] = "android.se.omapi.ISecureElementService/default";
+constexpr const char kChannelWakelockName[] = "nxp_keymint_channel";
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
 
@@ -258,11 +260,14 @@ bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& ou
 
     if (eSEReader != nullptr) {
         LOG(DEBUG) << "Sending apdu data to secure element: " << ESE_READER_PREFIX;
+        acquire_wake_lock(PARTIAL_WAKE_LOCK, kChannelWakelockName);
 #ifdef NXP_EXTNS
-        return internalProtectedTransmitApdu(eSEReader, std::move(apdu), output);
+        bool status = internalProtectedTransmitApdu(eSEReader, std::move(apdu), output);
 #else
-        return internalTransmitApdu(eSEReader, apdu, output);
+        bool status = internalTransmitApdu(eSEReader, apdu, output);
 #endif
+        release_wake_lock(kChannelWakelockName);
+        return status;
     } else {
         LOG(ERROR) << "secure element reader " << ESE_READER_PREFIX << " not found";
         return false;
