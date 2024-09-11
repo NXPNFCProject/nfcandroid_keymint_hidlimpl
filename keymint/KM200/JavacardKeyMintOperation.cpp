@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -47,9 +47,13 @@ using cppbor::Uint;
 using secureclock::TimeStampToken;
 
 JavacardKeyMintOperation::~JavacardKeyMintOperation() {
-    if (opHandle_ != 0) {
-        abort();
-    }
+#ifdef NXP_EXTNS
+  card_->setOperationState(::keymint::javacard::CryptoOperationState::FINISHED);
+#endif
+
+  if (opHandle_ != 0) {
+    abort();
+  }
 }
 
 ScopedAStatus JavacardKeyMintOperation::updateAad(const vector<uint8_t>& input,

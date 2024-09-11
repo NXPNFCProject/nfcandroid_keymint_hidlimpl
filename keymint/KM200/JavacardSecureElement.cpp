@@ -29,7 +29,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023-2024 NXP
  *
  ******************************************************************************/
 
@@ -154,5 +154,11 @@ JavacardSecureElement::sendRequest(Instruction ins) {
     // decode the response and send that back
     return cbor_.decodeData(response);
 }
+
+#ifdef NXP_EXTNS
+void JavacardSecureElement::setOperationState(CryptoOperationState state) {
+  transport_->setCryptoOperationState(state);
+}
+#endif
 
 }  // namespace keymint::javacard
