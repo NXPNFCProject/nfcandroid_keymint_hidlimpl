@@ -30,7 +30,7 @@
 ** See the License for the specific language governing permissions and
 ** limitations under the License.
 **
-** Copyright 2021-2024 NXP
+** Copyright 2021-2023 NXP
 **
 *********************************************************************************/
 #pragma once
@@ -60,12 +60,6 @@ class ITransport {
       (void)aid;
       return false;
     }
-
-    /**
-     * Sets state(start/finish) of crypto operation.
-     * This is required for channel session timeout mgmt.
-     */
-    virtual void setCryptoOperationState(uint8_t state) { (void)state; };
 #endif
     /**
      * Opens connection.

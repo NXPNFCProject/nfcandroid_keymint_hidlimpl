@@ -30,21 +30,32 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021,2024 NXP
+ ** Copyright 2020-2021 NXP
  **
  *********************************************************************************/
 #ifndef __APPLETCONNECTION_H__
 #define __APPLETCONNECTION_H__
 
-#include <aidl/android/hardware/secure_element/BnSecureElementCallback.h>
-#include <aidl/android/hardware/secure_element/ISecureElement.h>
+#include <android/hardware/secure_element/1.0/types.h>
+#include <android/hardware/secure_element/1.1/ISecureElementHalCallback.h>
+#include <android/hardware/secure_element/1.2/ISecureElement.h>
+#include <hidl/MQDescriptor.h>
+#include <hidl/Status.h>
 #include <vector>
 
 #include <SBAccessController.h>
 
 namespace keymint::javacard {
-class SecureElementCallback;
-using aidl::android::hardware::secure_element::ISecureElement;
+
+using ::android::hardware::hidl_array;
+using ::android::hardware::hidl_memory;
+using ::android::hardware::hidl_string;
+using ::android::hardware::hidl_vec;
+using ::android::hardware::Return;
+using ::android::hardware::Void;
+using ::android::sp;
+using ::android::hardware::secure_element::V1_2::ISecureElement;
+using ::android::hardware::secure_element::V1_1::ISecureElementHalCallback;
 
 struct AppletConnection {
 public:
@@ -76,11 +87,6 @@ public:
    * Checks if a channel to the applet is open.
    */
   bool isChannelOpen();
-
-  /**
-   * Checks if service is connected to eSE HAL.
-   */
-  bool isServiceConnected();
   /**
    * Get session timeout value based on select response normal/update session
    */
@@ -93,14 +99,10 @@ public:
   bool selectApplet(std::vector<uint8_t>& resp, uint8_t p2);
 
   std::mutex channel_mutex_;  // exclusive access to isChannelopen()/close()
-
-  std::shared_ptr<ISecureElement> mSecureElement;
-  std::shared_ptr<SecureElementCallback> mSecureElementCallback;
-  ::ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
-  static void BinderDiedCallback(void* cookie);
+  sp<ISecureElement> mSEClient;
   std::vector<uint8_t> kAppletAID;
   int8_t mOpenChannel = -1;
-  SBAccessController& mSBAccessController;
+  SBAccessController mSBAccessController;
 };
 
 }  // namespace keymint::javacard

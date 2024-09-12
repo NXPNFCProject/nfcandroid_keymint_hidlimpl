@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2023,2024 NXP
+ ** Copyright 2023 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.keymint.device.rkp.strongbox-impl"
@@ -125,7 +125,6 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::getHardwareInfo(RpcHar
         LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
         return defaultHwInfo(info);
     }
-    card_->sendPendingEvents();
     info->rpcAuthorName = std::move(optRpcAuthorName.value());
     info->versionNumber = static_cast<int32_t>(std::move(optVersionNumber.value()));
     info->supportedEekCurve = static_cast<int32_t>(std::move(optSupportedEekCurve.value()));
@@ -139,7 +138,6 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::generateEcdsaP256KeyPa
     if (testMode) {
         return km_utils::kmError2ScopedAStatus(static_cast<keymaster_error_t>(STATUS_REMOVED));
     }
-    card_->sendPendingEvents();
     auto [item, err] = card_->sendRequest(Instruction::INS_GENERATE_RKP_KEY_CMD);
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending generateEcdsaP256KeyPair.";

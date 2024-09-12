@@ -42,9 +42,6 @@ cc_library {
     srcs: [
         "*.cpp",
     ],
-    defaults: [
-        "keymint_use_latest_hal_aidl_ndk_shared",
-    ],
     cflags: [
         "-DOMAPI_TRANSPORT",
         "-DINTERVAL_TIMER",
@@ -53,14 +50,22 @@ cc_library {
     export_include_dirs: [
         "include"
     ],
+    export_shared_lib_headers: [
+        "android.hardware.secure_element@1.0",
+        "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
+    ],
     shared_libs: [
+        "android.hardware.secure_element@1.0",
+        "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
         "android.se.omapi-V1-ndk",
-        "android.hardware.secure_element-V1-ndk",
         "libbase",
         "liblog",
         "libcutils",
         "libutils",
         "libhardware",
+        "libhardware_legacy",
         "libhidlbase",
         "libbinder_ndk",
     ],

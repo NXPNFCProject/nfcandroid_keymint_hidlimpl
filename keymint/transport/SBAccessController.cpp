@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021-2024 NXP
+ *  Copyright 2021-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,18 +31,18 @@
 namespace keymint::javacard {
 
 static bool g_AccessAllowed = true;
-static std::atomic<uint8_t> g_NumOfCryptoOps = 0;
+static bool g_IsCryptoOperationRunning = false;
 
 // These should be in sync with JavacardKeymasterDevice41.cpp
 // Allow listed cmds
-std::map<uint8_t, uint8_t> allowedCmdIns = {{0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0},
+std::map<uint8_t, uint8_t> allowedCmdIns = {{0xD9 /*INS_SET_VERSION_PATCHLEVEL*/, 0},
                                             {0x2A /*INS_COMPUTE_SHARED_HMAC*/, 0},
-                                            {0x4D /*INS_GET_ROT_CHALLENGE_CMD*/, 0}};
+                                            {0x2D /*INS_GET_HMAC_SHARING_PARAM*/, 0}};
 
 static void CryptoOpTimerFunc(union sigval arg) {
     (void)arg;  // unused
     LOG(DEBUG) << "CryptoOperation timer expired";
-    g_NumOfCryptoOps = 0;
+    g_IsCryptoOperationRunning = false;
 }
 
 static void AccessTimerFunc(union sigval arg) {
@@ -50,10 +50,7 @@ static void AccessTimerFunc(union sigval arg) {
     LOG(DEBUG) << "Applet access-block timer expired";
     g_AccessAllowed = true;
 }
-SBAccessController& SBAccessController::getInstance() {
-    static SBAccessController sb_access_cntrl;
-    return sb_access_cntrl;
-}
+
 void SBAccessController::startTimer(bool isStart, IntervalTimer& t, int timeout,
                                     void (*timerFunc)(union sigval)) {
     t.kill();
@@ -81,7 +78,7 @@ int SBAccessController::getSessionTimeout() {
         return (mBootState == BOOTSTATE::SB_EARLY_BOOT_ENDED) ? SMALLEST_SESSION_TIMEOUT
                                                               : UPGRADE_SESSION_TIMEOUT;
     } else {
-        return (g_NumOfCryptoOps > 0) ? CRYPTO_OP_SESSION_TIMEOUT : REGULAR_SESSION_TIMEOUT;
+        return g_IsCryptoOperationRunning ? CRYPTO_OP_SESSION_TIMEOUT : REGULAR_SESSION_TIMEOUT;
     }
 }
 bool SBAccessController::isSelectAllowed() {
@@ -117,23 +114,17 @@ void SBAccessController::updateBootState() {
         mBootState = BOOTSTATE::SB_EARLY_BOOT_ENDED;
     }
 }
-void SBAccessController::setCryptoOperationState(uint8_t opState) {
-    if (opState == OPERATION_STATE::OP_STARTED) {
-        g_NumOfCryptoOps++;
-        startTimer(true, mTimerCrypto, CRYPTO_OP_SESSION_TIMEOUT, CryptoOpTimerFunc);
-    } else if (opState == OPERATION_STATE::OP_FINISHED) {
-        if (g_NumOfCryptoOps > 0) g_NumOfCryptoOps--;
-        if (g_NumOfCryptoOps == 0) {
-            LOG(INFO) << "All crypto operations finished";
-            startTimer(false, mTimerCrypto, 0, nullptr);
-        }
-    }
-    LOG(INFO) << "Number of operations running: " << std::to_string(g_NumOfCryptoOps);
-}
 bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
     bool op_allowed = false;
     if (g_AccessAllowed) {
         op_allowed = true;
+        if (cmdIns == BEGIN_OPERATION_CMD) {
+            g_IsCryptoOperationRunning = true;
+            startTimer(true, mTimerCrypto, CRYPTO_OP_SESSION_TIMEOUT, CryptoOpTimerFunc);
+        } else if (cmdIns == FINISH_OPERATION_CMD || cmdIns == ABORT_OPERATION_CMD) {
+            g_IsCryptoOperationRunning = false;
+            startTimer(false, mTimerCrypto, 0, nullptr);
+        }
     } else {
         switch (mBootState) {
             case BOOTSTATE::SB_EARLY_BOOT: {
@@ -148,8 +139,8 @@ bool SBAccessController::isOperationAllowed(uint8_t cmdIns) {
                 break;
         }
     }
-    if (cmdIns == EARLY_BOOT_ENDED_CMD || cmdIns == INS_SEND_ROT_DATA_CMD) {
-        // allowed as these may be received during early boot
+    if (cmdIns == EARLY_BOOT_ENDED_CMD) {
+        // allowed as this is sent by VOLD only during early boot
         op_allowed = true;
     }
     return op_allowed;

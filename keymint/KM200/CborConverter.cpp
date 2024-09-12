@@ -14,25 +14,6 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  */
-/******************************************************************************
- *
- *  The original Work has been changed by NXP.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  Copyright 2023 NXP
- *
- ******************************************************************************/
 
 #include "CborConverter.h"
 #include <JavacardKeyMintUtils.h>
@@ -44,12 +25,10 @@
 #include <vector>
 
 namespace keymint::javacard {
-using ::aidl::android::hardware::security::keymint::HardwareAuthenticatorType;
-using ::aidl::android::hardware::security::keymint::SecurityLevel;
-using ::aidl::android::hardware::security::keymint::km_utils::aidlKeyParams2Km;
-using ::aidl::android::hardware::security::keymint::km_utils::kmBlob2vector;
-using ::aidl::android::hardware::security::keymint::km_utils::kmParam2Aidl;
-using ::aidl::android::hardware::security::keymint::km_utils::typeFromTag;
+using namespace cppbor;
+using namespace aidl::android::hardware::security::keymint;
+using namespace aidl::android::hardware::security::secureclock;
+using namespace aidl::android::hardware::security::sharedsecret;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -69,13 +48,13 @@ bool CborConverter::addAttestationKey(Array& array,
 }
 
 bool CborConverter::addKeyparameters(Array& array, const vector<KeyParameter>& keyParams) {
-    keymaster_key_param_set_t paramSet = aidlKeyParams2Km(keyParams);
+    keymaster_key_param_set_t paramSet = km_utils::aidlKeyParams2Km(keyParams);
     Map map;
     std::map<uint64_t, vector<uint8_t>> enum_repetition;
     std::map<uint64_t, Array> uint_repetition;
     for (size_t i = 0; i < paramSet.length; i++) {
         const auto& param = paramSet.params[i];
-        switch (typeFromTag(param.tag)) {
+        switch (km_utils::typeFromTag(param.tag)) {
         case KM_ENUM:
             map.add(static_cast<uint64_t>(param.tag), param.enumerated);
             break;
@@ -105,7 +84,7 @@ bool CborConverter::addKeyparameters(Array& array, const vector<KeyParameter>& k
         case KM_BIGNUM:
         case KM_BYTES:
             map.add(static_cast<uint64_t>(param.tag & 0x00000000ffffffff),
-                    kmBlob2vector(param.blob));
+                    km_utils::kmBlob2vector(param.blob));
             break;
         default:
             /* Invalid skip */
@@ -167,7 +146,7 @@ bool CborConverter::getKeyParameter(
             keymaster_key_param_t keyParam;
             keyParam.tag = static_cast<keymaster_tag_t>(key);
             keyParam.enumerated = bchar;
-            keyParams.push_back(kmParam2Aidl(keyParam));
+            keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
         }
     } break;
     case KM_ENUM: {
@@ -177,7 +156,7 @@ bool CborConverter::getKeyParameter(
             return false;
         }
         keyParam.enumerated = static_cast<uint32_t>(value);
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     case KM_UINT: {
         keymaster_key_param_t keyParam;
@@ -186,7 +165,7 @@ bool CborConverter::getKeyParameter(
             return false;
         }
         keyParam.integer = static_cast<uint32_t>(value);
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     case KM_ULONG: {
         keymaster_key_param_t keyParam;
@@ -195,7 +174,7 @@ bool CborConverter::getKeyParameter(
             return false;
         }
         keyParam.long_integer = value;
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     case KM_UINT_REP: {
         /* UINT_REP contains values encoded in a Array */
@@ -209,7 +188,7 @@ bool CborConverter::getKeyParameter(
                 return false;
             }
             keyParam.integer = static_cast<uint32_t>(value);
-            keyParams.push_back(kmParam2Aidl(keyParam));
+            keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
         }
     } break;
     case KM_ULONG_REP: {
@@ -223,7 +202,7 @@ bool CborConverter::getKeyParameter(
             if (!getUint64(item, keyParam.long_integer)) {
                 return false;
             }
-            keyParams.push_back(kmParam2Aidl(keyParam));
+            keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
         }
     } break;
     case KM_DATE: {
@@ -233,7 +212,7 @@ bool CborConverter::getKeyParameter(
             return false;
         }
         keyParam.date_time = value;
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     case KM_BOOL: {
         keymaster_key_param_t keyParam;
@@ -243,7 +222,7 @@ bool CborConverter::getKeyParameter(
         }
         // TODO re-check the logic below
         keyParam.boolean = static_cast<bool>(value);
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     case KM_BYTES: {
         keymaster_key_param_t keyParam;
@@ -252,7 +231,7 @@ bool CborConverter::getKeyParameter(
         if (bstr == nullptr) return false;
         keyParam.blob.data = bstr->value().data();
         keyParam.blob.data_length = bstr->value().size();
-        keyParams.push_back(kmParam2Aidl(keyParam));
+        keyParams.push_back(km_utils::kmParam2Aidl(keyParam));
     } break;
     default:
         /* Invalid - return error */
@@ -340,7 +319,7 @@ bool CborConverter::getSharedSecretParameters(const unique_ptr<Item>& item, cons
 bool CborConverter::addSharedSecretParameters(Array& array,
                                               const vector<SharedSecretParameters>& params) {
     Array cborParamsVec;
-    for (const auto &param : params) {
+    for (auto param : params) {
         Array cborParam;
         cborParam.add(Bstr(param.seed));
         cborParam.add(Bstr(param.nonce));
@@ -388,11 +367,11 @@ bool CborConverter::getHardwareAuthToken(const unique_ptr<Item>& item, const uin
         !getBinaryArray(item, pos + 5, token.mac)) {
         return false;
     }
-    token.challenge = static_cast<int64_t>(challenge);
-    token.userId = static_cast<int64_t>(userId);
-    token.authenticatorId = static_cast<int64_t>(authenticatorId);
+    token.challenge = static_cast<long>(challenge);
+    token.userId = static_cast<long>(userId);
+    token.authenticatorId = static_cast<long>(authenticatorId);
     token.authenticatorType = static_cast<HardwareAuthenticatorType>(authType);
-    token.timestamp.milliSeconds = static_cast<int64_t>(timestampMillis);
+    token.timestamp.milliSeconds = static_cast<long>(timestampMillis);
     return true;
 }
 
@@ -406,8 +385,8 @@ bool CborConverter::getTimeStampToken(const unique_ptr<Item>& item, const uint32
         !getBinaryArray(item, pos + 2, token.mac)) {
         return false;
     }
-    token.challenge = static_cast<int64_t>(challenge);
-    token.timestamp.milliSeconds = static_cast<int64_t>(timestampMillis);
+    token.challenge = static_cast<long>(challenge);
+    token.timestamp.milliSeconds = static_cast<long>(timestampMillis);
     return true;
 }
 

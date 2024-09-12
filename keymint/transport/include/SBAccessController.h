@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2021,2024 NXP
+ *  Copyright 2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include <vector>
 
 #define EARLY_BOOT_ENDED_CMD (0x35)  // INS Received from VOLD when earlyboot state ends
-#define INS_SEND_ROT_DATA_CMD (0x4F)  // Google defined RoT cmd
 #define BEGIN_OPERATION_CMD (0x30)   // begin()
 #define FINISH_OPERATION_CMD (0x32)  // finish()
 #define ABORT_OPERATION_CMD (0x33)   // abort()
@@ -41,15 +40,14 @@ enum BOOTSTATE {
     SB_EARLY_BOOT = 0,
     SB_EARLY_BOOT_ENDED,
 };
-
-enum OPERATION_STATE {
-    OP_STARTED = 0,
-    OP_FINISHED,
-};
-
 namespace keymint::javacard {
 class SBAccessController {
   public:
+    /**
+     * Constructor
+     */
+    SBAccessController() : mIsUpdateInProgress(false), mBootState(SB_EARLY_BOOT) {}
+
     /**
      * Controls Applet selection
      * 1) Not allowed when actual upgrade is in progress for 40 secs
@@ -66,13 +64,6 @@ class SBAccessController {
      * Returns : void
      */
     void parseResponse(std::vector<uint8_t>& responseApdu);
-
-    /**
-     * Sets the state of crypto operation
-     * Params : crypto operation start/finish
-     * Returns : void
-     */
-    void setCryptoOperationState(uint8_t opState);
 
     /**
      * Determines if current INS is allowed
@@ -99,17 +90,7 @@ class SBAccessController {
      */
     void updateBootState();
 
-    /**
-     * Helper function to get singleton instance
-     * Params: void
-     * Returns: Instance of SBAccessController
-     */
-    static SBAccessController& getInstance();
-    SBAccessController(const SBAccessController&) = delete;
-
   private:
-    // mark constructor private
-    SBAccessController() : mIsUpdateInProgress(false), mBootState(SB_EARLY_BOOT) {}
     bool mIsUpdateInProgress;  // stores Applet upgrade state
     BOOTSTATE mBootState;
 

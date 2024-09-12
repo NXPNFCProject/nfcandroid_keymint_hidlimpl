@@ -13,25 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/******************************************************************************
-*
-*  The original Work has been changed by NXP.
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  Copyright 2024 NXP
-*
-******************************************************************************/
 
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardSecureElement.h"
@@ -44,10 +25,6 @@
 #include <string>
 #include <vector>
 
-#ifdef INIT_USING_SEHAL_TRANSPORT
-#include <HalToHalTransport.h>
-#endif
-#include <aidl/android/hardware/security/keymint/ErrorCode.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <keymaster/android_keymaster_messages.h>
@@ -55,14 +32,6 @@
 #include "keymint_utils.h"
 
 namespace keymint::javacard {
-using ::aidl::android::hardware::security::keymint::ErrorCode;
-const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
-
-namespace {
-keymaster_error_t aidlEnumErrorCode2km(ErrorCode err) {
-    return static_cast<keymaster_error_t>(err);
-}
-}  // namespace
 
 keymaster_error_t JavacardSecureElement::initializeJavacard() {
     Array request;
@@ -80,34 +49,26 @@ void JavacardSecureElement::setEarlyBootEndedPending() {
     isEarlyBootEndedPending = true;
 }
 void JavacardSecureElement::sendPendingEvents() {
-    if (isCardInitPending) {
-        if (KM_ERROR_OK == initializeJavacard()) {
-            isCardInitPending = false;
-        } else {
-            LOG(ERROR) << "Error in sending system properties(OS_VERSION, OS_PATCH, VENDOR_PATCH).";
-        }
-    }
-
     if (isDeleteAllKeysPending) {
-        auto [_, err] = sendRequest(Instruction::INS_DELETE_ALL_KEYS_CMD);
-        if (err == KM_ERROR_OK) {
-            isDeleteAllKeysPending = false;
-        } else {
-            LOG(ERROR) << "Error in sending deleteAllKeys.";
-        }
+      auto [_, err] = sendRequest(Instruction::INS_DELETE_ALL_KEYS_CMD);
+      if (err == KM_ERROR_OK) {
+        isDeleteAllKeysPending = false;
+      } else {
+        LOG(ERROR) << "Error in sending deleteAllKeys.";
+      }
     }
     if (isEarlyBootEndedPending) {
-        auto [_, err] = sendRequest(Instruction::INS_EARLY_BOOT_ENDED_CMD);
-        if (err == KM_ERROR_OK) {
-            isEarlyBootEndedPending = false;
-        } else {
-            LOG(ERROR) << "Error in sending earlyBootEnded.";
-        }
+      auto [_, err] = sendRequest(Instruction::INS_EARLY_BOOT_ENDED_CMD);
+      if (err == KM_ERROR_OK) {
+        isEarlyBootEndedPending = false;
+      } else {
+        LOG(ERROR) << "Error in sending earlyBootEnded.";
+      }
     }
 }
 
 keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
-                                                              const std::vector<uint8_t>& inputData,
+                                                              std::vector<uint8_t>& inputData,
                                                               std::vector<uint8_t>& apduOut) {
     apduOut.push_back(static_cast<uint8_t>(APDU_CLS));  // CLS
     apduOut.push_back(static_cast<uint8_t>(ins));       // INS
@@ -137,9 +98,7 @@ keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
     return (KM_ERROR_OK);  // success
 }
 
-keymaster_error_t JavacardSecureElement::sendData(const std::shared_ptr<ITransport>& transport,
-                                                  Instruction ins,
-                                                  const std::vector<uint8_t>& inData,
+keymaster_error_t JavacardSecureElement::sendData(Instruction ins, std::vector<uint8_t>& inData,
                                                   std::vector<uint8_t>& response) {
     keymaster_error_t ret = KM_ERROR_UNKNOWN_ERROR;
     std::vector<uint8_t> apdu;
@@ -150,15 +109,16 @@ keymaster_error_t JavacardSecureElement::sendData(const std::shared_ptr<ITranspo
         return ret;
     }
 
-    if (!transport->sendData(apdu, response) && (response.size() < 2)) {
-        LOG(ERROR) << "Error in sending C-APDU";
+    if (!transport_->sendData(apdu, response)) {
+        LOG(ERROR) << "Error in sending data in sendData.";
         return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
+
     // Response size should be greater than 2. Cbor output data followed by two
     // bytes of APDU status.
-    if (getApduStatus(response) != APDU_RESP_STATUS_OK) {
-        LOG(ERROR) << "ERROR Response apdu status = " << std::uppercase << std::hex
-                   << getApduStatus(response);
+    if ((response.size() <= 2) || (getApduStatus(response) != APDU_RESP_STATUS_OK)) {
+        LOG(ERROR) << "Response of the sendData is wrong: response size = " << response.size()
+                   << " apdu status = " << getApduStatus(response);
         return (KM_ERROR_UNKNOWN_ERROR);
     }
     // remove the status bytes
@@ -167,87 +127,40 @@ keymaster_error_t JavacardSecureElement::sendData(const std::shared_ptr<ITranspo
     return (KM_ERROR_OK);  // success
 }
 
-keymaster_error_t JavacardSecureElement::sendData(Instruction ins,
-                                                  const std::vector<uint8_t>& inData,
-                                                  std::vector<uint8_t>& response) {
-    return sendData(transport_, ins, inData, response);
-}
-
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequest(
-    Instruction ins, const Array& request) {
-    return sendRequest(transport_, ins, request.encode());
-}
-
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequest(
-    Instruction ins, const std::vector<uint8_t>& command) {
-    return sendRequest(transport_, ins, command);
-}
-
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequest(
-    Instruction ins) {
-    return sendRequest(transport_, ins, std::vector<uint8_t>());
-}
-#ifdef INIT_USING_SEHAL_TRANSPORT
-bool JavacardSecureElement::initSEHal() {
-    if (seHalTransport == nullptr) {
-        seHalTransport = std::make_shared<HalToHalTransport>(gStrongBoxAppletAID);
-    }
-    return seHalTransport->openConnection();
-}
-
-bool JavacardSecureElement::closeSEHal() {
-    bool ret = true;
-    if (seHalTransport != nullptr) {
-        ret = seHalTransport->closeConnection();
-        if (!ret) {
-            LOG(INFO) << "Failed to close SE Hal.";
-        }
-        seHalTransport = nullptr;
-    }
-    return ret;
-}
-#endif
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequestSeHal(
-    Instruction ins, const std::vector<uint8_t>& command) {
-    if (seHalTransport != nullptr) {
-        return sendRequest(seHalTransport, ins, command);
-    } else {
-        auto [item, err] = sendRequest(ins, command);
-        if (err != KM_ERROR_OK) {
-#ifdef INIT_USING_SEHAL_TRANSPORT
-            if (err == aidlEnumErrorCode2km(ErrorCode::SECURE_HW_COMMUNICATION_FAILED)) {
-                LOG(DEBUG) << "OMAPI is not yet available. Send INS: " << static_cast<int>(ins)
-                           << " via SE Hal.";
-                if (initSEHal()) {
-                    return sendRequest(seHalTransport, ins, command);
-                }
-                LOG(ERROR) << "Failed to initialize SE HAL";
-            }
-#endif
-        }
-        return {std::move(item), std::move(err)};
-    }
-}
-
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequestSeHal(
-    Instruction ins) {
-    return sendRequestSeHal(ins, std::vector<uint8_t>());
-}
-
-std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::sendRequest(
-    const std::shared_ptr<ITransport>& transport, Instruction ins,
-    const std::vector<uint8_t>& command) {
+std::tuple<std::unique_ptr<Item>, keymaster_error_t>
+JavacardSecureElement::sendRequest(Instruction ins, Array& request) {
     vector<uint8_t> response;
-    auto sendError = sendData(transport, ins, command, response);
+    // encode request
+    std::vector<uint8_t> command = request.encode();
+    auto sendError = sendData(ins, command, response);
     if (sendError != KM_ERROR_OK) {
         return {unique_ptr<Item>(nullptr), sendError};
     }
     // decode the response and send that back
     return cbor_.decodeData(response);
 }
-#ifdef NXP_EXTNS
-void JavacardSecureElement::setOperationState(CryptoOperationState state) {
-    transport_->setCryptoOperationState(state);
+
+std::tuple<std::unique_ptr<Item>, keymaster_error_t>
+JavacardSecureElement::sendRequest(Instruction ins, std::vector<uint8_t>& command) {
+    vector<uint8_t> response;
+    auto sendError = sendData(ins, command, response);
+    if (sendError != KM_ERROR_OK) {
+        return {unique_ptr<Item>(nullptr), sendError};
+    }
+    // decode the response and send that back
+    return cbor_.decodeData(response);
 }
-#endif
+
+std::tuple<std::unique_ptr<Item>, keymaster_error_t>
+JavacardSecureElement::sendRequest(Instruction ins) {
+    vector<uint8_t> response;
+    vector<uint8_t> emptyRequest;
+    auto sendError = sendData(ins, emptyRequest, response);
+    if (sendError != KM_ERROR_OK) {
+        return {unique_ptr<Item>(nullptr), sendError};
+    }
+    // decode the response and send that back
+    return cbor_.decodeData(response);
+}
+
 }  // namespace keymint::javacard

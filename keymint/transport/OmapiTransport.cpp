@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2024 NXP
+ ** Copyright 2022-2023 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -47,6 +47,7 @@
 
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
+#include <hardware_legacy/power.h>
 
 #include <EseTransportUtils.h>
 #include <IntervalTimer.h>
@@ -63,6 +64,7 @@ namespace keymint::javacard {
 
 std::string const ESE_READER_PREFIX = "eSE";
 constexpr const char omapiServiceName[] = "android.se.omapi.ISecureElementService/default";
+constexpr const char kChannelWakelockName[] = "nxp_keymint_channel";
 
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
 
@@ -243,9 +245,9 @@ bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& ou
 #endif
     if (!isConnected()) {
         // Try to initialize connection to eSE
-        LOG(INFO) << "Not connected, try to initialize connection to OMAPI";
+        LOG(INFO) << "Failed to send data, try to initialize connection SE connection";
         if (!initialize()) {
-            LOG(ERROR) << "Failed to connect to OMAPI";
+            LOG(ERROR) << "Failed to send data, initialization not completed";
             closeConnection();
             return false;
         }
@@ -258,11 +260,14 @@ bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& ou
 
     if (eSEReader != nullptr) {
         LOG(DEBUG) << "Sending apdu data to secure element: " << ESE_READER_PREFIX;
+        acquire_wake_lock(PARTIAL_WAKE_LOCK, kChannelWakelockName);
 #ifdef NXP_EXTNS
-        return internalProtectedTransmitApdu(eSEReader, std::move(apdu), output);
+        bool status = internalProtectedTransmitApdu(eSEReader, std::move(apdu), output);
 #else
-        return internalTransmitApdu(eSEReader, apdu, output);
+        bool status = internalTransmitApdu(eSEReader, apdu, output);
 #endif
+        release_wake_lock(kChannelWakelockName);
+        return status;
     } else {
         LOG(ERROR) << "secure element reader " << ESE_READER_PREFIX << " not found";
         return false;
@@ -316,10 +321,6 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     //auto mSEListener = std::make_shared<SEListener>();
     std::vector<uint8_t> selectResponse = {};
     const std::vector<uint8_t> sbAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
-    bool isSBAppletAID = false;
-    if (sbAppletAID == mSelectableAid) {
-        isSBAppletAID = true;
-    }
 
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
@@ -350,11 +351,11 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
-        if (isSBAppletAID && !mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
-            LOG(ERROR) << "Select / Command INS not allowed";
-            prepareErrorRepsponse(transmitResponse);
-            return false;
-        }
+      if (!mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+        LOG(ERROR) << "Select / Command INS not allowed";
+        prepareErrorRepsponse(transmitResponse);
+        return false;
+      }
 
       if (!openChannelToApplet()) {
         LOG(ERROR) << "openLogicalChannel error: " << res.getMessage();
@@ -365,7 +366,6 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       }
       if (channel == nullptr) {
         LOG(ERROR) << "Could not open channel null";
-        prepareErrorRepsponse(transmitResponse);
         return false;
       }
 
@@ -381,20 +381,21 @@ bool OmapiTransport::internalProtectedTransmitApdu(
           LOG(ERROR) << "Failed to select the Applet.";
           return false;
       }
-      if (isSBAppletAID) {
-          mSBAccessController.parseResponse(selectResponse);
+      if (sbAppletAID == mSelectableAid) {
+        mSBAccessController.parseResponse(selectResponse);
       }
     }
 
-    if (!isSBAppletAID ||
-        mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+    status = false;
+    if (mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
 #ifdef ENABLE_DEBUG_LOG
       LOGD_OMAPI("constructed apdu: " << apdu);
 #endif
       res = channel->transmit(apdu, &transmitResponse);
+      status = true;
     } else {
-      LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
-      prepareErrorRepsponse(transmitResponse);
+        LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
+        prepareErrorRepsponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
@@ -427,7 +428,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         LOG(ERROR) << "transmit error: " << res.getMessage();
         return false;
     }
-    return true;
+    return status;
 }
 
 void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
@@ -466,19 +467,7 @@ bool OmapiTransport::openChannelToApplet() {
   return false;
 }
 
-void OmapiTransport::setCryptoOperationState(uint8_t state) {
-    mSBAccessController.setCryptoOperationState(state);
-
-    int timeout = mSBAccessController.getSessionTimeout();
-
-    LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
-    if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
-        LOG(ERROR) << "Set Timer Failed !!!";
-        closeChannel();
-    }
-}
-
-#endif  // NXP_EXTNS
+#endif
 
 }  // namespace keymint::javacard
 #endif // OMAPI_TRANSPORT

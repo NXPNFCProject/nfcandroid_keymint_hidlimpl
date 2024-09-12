@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 /******************************************************************************
- *
- *  The original Work has been changed by NXP.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  Copyright 2022-2023 NXP
- *
- ******************************************************************************/
+*
+*  The original Work has been changed by NXP.
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*  http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*
+*  Copyright 2022 NXP
+*
+******************************************************************************/
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardKeyMintDevice.h"
 #include "JavacardKeyMintOperation.h"
@@ -46,20 +46,14 @@
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/wrapped_key.h>
 #include <memory>
-#include <memunreachable/memunreachable.h>
 #include <regex.h>
 #include <string>
 #include <vector>
 
 namespace aidl::android::hardware::security::keymint {
-using cppbor::Array;
-using cppbor::Bstr;
-using cppbor::Uint;
-using ::keymaster::AuthorizationSet;
-using ::keymaster::dup_buffer;
-using ::keymaster::KeymasterBlob;
-using ::keymaster::KeymasterKeyBlob;
-using ::keymint::javacard::Instruction;
+using km_utils::KmParamSet;
+using namespace ::keymaster;
+using namespace ::keymint::javacard;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 1;
@@ -96,7 +90,7 @@ ScopedAStatus JavacardKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) 
 ScopedAStatus JavacardKeyMintDevice::generateKey(const vector<KeyParameter>& keyParams,
                                                  const optional<AttestationKey>& attestationKey,
                                                  KeyCreationResult* creationResult) {
-    Array array;
+    cppbor::Array array;
     // add key params
     cbor_.addKeyparameters(array, keyParams);
     // add attestation key if any
@@ -116,7 +110,7 @@ ScopedAStatus JavacardKeyMintDevice::generateKey(const vector<KeyParameter>& key
 }
 
 ScopedAStatus JavacardKeyMintDevice::addRngEntropy(const vector<uint8_t>& data) {
-    Array request;
+    cppbor::Array request;
     // add key data
     request.add(Bstr(data));
     auto [item, err] = card_->sendRequest(Instruction::INS_ADD_RNG_ENTROPY_CMD, request);
@@ -132,7 +126,7 @@ ScopedAStatus JavacardKeyMintDevice::importKey(const vector<KeyParameter>& keyPa
                                                const optional<AttestationKey>& attestationKey,
                                                KeyCreationResult* creationResult) {
 
-    Array request;
+    cppbor::Array request;
     // add key params
     cbor_.addKeyparameters(request, keyParams);
     // add key format
@@ -163,7 +157,7 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
                                                       const vector<KeyParameter>& unwrappingParams,
                                                       int64_t passwordSid, int64_t biometricSid,
                                                       KeyCreationResult* creationResult) {
-    Array request;
+    cppbor::Array request;
     std::unique_ptr<Item> item;
     vector<uint8_t> keyBlob;
     std::vector<uint8_t> response;
@@ -239,7 +233,7 @@ JavacardKeyMintDevice::sendFinishImportWrappedKeyCmd(
 ScopedAStatus JavacardKeyMintDevice::upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
                                                 const vector<KeyParameter>& upgradeParams,
                                                 vector<uint8_t>* keyBlob) {
-    Array request;
+    cppbor::Array request;
     // add key blob
     request.add(Bstr(keyBlobToUpgrade));
     // add key params
@@ -290,7 +284,7 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
                                            const std::optional<HardwareAuthToken>& authToken,
                                            BeginResult* result) {
 
-    Array array;
+    cppbor::Array array;
     std::vector<uint8_t> response;
     // make request
     array.add(Uint(static_cast<uint64_t>(purpose)));
@@ -366,7 +360,7 @@ ScopedAStatus JavacardKeyMintDevice::earlyBootEnded() {
 ScopedAStatus JavacardKeyMintDevice::getKeyCharacteristics(
     const std::vector<uint8_t>& keyBlob, const std::vector<uint8_t>& appId,
     const std::vector<uint8_t>& appData, std::vector<KeyCharacteristics>* result) {
-    Array request;
+    cppbor::Array request;
     request.add(vector<uint8_t>(keyBlob));
     request.add(vector<uint8_t>(appId));
     request.add(vector<uint8_t>(appData));
@@ -451,11 +445,5 @@ ScopedAStatus JavacardKeyMintDevice::convertStorageKeyToEphemeral(
     const std::vector<uint8_t>& /* storageKeyBlob */,
     std::vector<uint8_t>* /* ephemeralKeyBlob */) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
-}
-
-binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
-    LOG(INFO) << "\n KeyMint-JavacardKeyMintDevice HAL MemoryLeak Info = \n"
-              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
-    return STATUS_OK;
 }
 }  // namespace aidl::android::hardware::security::keymint

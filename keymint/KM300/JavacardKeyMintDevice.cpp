@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 /******************************************************************************
- *
- *  The original Work has been changed by NXP.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *  Copyright 2022,2024 NXP
- *
- ******************************************************************************/
+*
+*  The original Work has been changed by NXP.
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*  http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+*
+*  Copyright 2022 NXP
+*
+******************************************************************************/
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardKeyMintDevice.h"
 
@@ -91,6 +91,7 @@ ScopedAStatus JavacardKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) 
         LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
         return defaultHwInfo(info);
     }
+    card_->initializeJavacard();
     info->keyMintName = std::move(optKeyMintName.value());
     info->keyMintAuthorName = std::move(optKeyMintAuthorName.value());
     info->timestampTokenRequired = (optTsRequired.value() == 1);
@@ -396,16 +397,9 @@ ScopedAStatus JavacardKeyMintDevice::getKeyCharacteristics(
 }
 
 ScopedAStatus JavacardKeyMintDevice::getRootOfTrustChallenge(std::array<uint8_t, 16>* challenge) {
-#ifdef INIT_USING_SEHAL_TRANSPORT
-    auto [item, err] = card_->sendRequestSeHal(Instruction::INS_GET_ROT_CHALLENGE_CMD);
-#else
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_ROT_CHALLENGE_CMD);
-#endif
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in getRootOfTrustChallenge.";
-#ifdef INIT_USING_SEHAL_TRANSPORT
-        card_->closeSEHal();
-#endif
         return km_utils::kmError2ScopedAStatus(err);
     }
     auto optChallenge = cbor_.getByteArrayVec(item, 1);
@@ -424,16 +418,8 @@ ScopedAStatus JavacardKeyMintDevice::getRootOfTrust(const std::array<uint8_t, 16
 
 ScopedAStatus JavacardKeyMintDevice::sendRootOfTrust(const std::vector<uint8_t>& rootOfTrust) {
     cppbor::Array request;
-    std::unique_ptr<Item> item;
-    keymaster_error_t err;
     request.add(EncodedItem(rootOfTrust));  // taggedItem.
-#ifdef INIT_USING_SEHAL_TRANSPORT
-    std::tie(item, err) =
-        card_->sendRequestSeHal(Instruction::INS_SEND_ROT_DATA_CMD, request.encode());
-    card_->closeSEHal();
-#else
-    std::tie(item, err) = card_->sendRequest(Instruction::INS_SEND_ROT_DATA_CMD, request.encode());
-#endif
+    auto [item, err] = card_->sendRequest(Instruction::INS_SEND_ROT_DATA_CMD, request);
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in sendRootOfTrust.";
         return km_utils::kmError2ScopedAStatus(err);
