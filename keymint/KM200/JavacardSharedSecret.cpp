@@ -14,7 +14,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2021-2023 NXP
+ ** Copyright 2021-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -40,17 +40,18 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
     card_->initializeJavacard();
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
 #ifdef NXP_EXTNS
-    if (err != KM_ERROR_OK && (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
-        getSharedSecretRetryCount++;
+    if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED &&
+        (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
+      getSharedSecretRetryCount++;
     } else if (err != KM_ERROR_OK) {
-        std::vector<uint8_t> refNonceSeed = {
+      std::vector<uint8_t> refNonceSeed = {
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        params->seed.assign(refNonceSeed.begin(), refNonceSeed.end());
-        params->nonce.assign(refNonceSeed.begin(), refNonceSeed.end());
-        err = KM_ERROR_OK;
-        return ScopedAStatus::ok();
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+      params->seed.assign(refNonceSeed.begin(), refNonceSeed.end());
+      params->nonce.assign(refNonceSeed.begin(), refNonceSeed.end());
+      err = KM_ERROR_OK;
+      return ScopedAStatus::ok();
     }
 #endif
     if (err != KM_ERROR_OK || !cbor_.getSharedSecretParameters(item, 1, *params)) {

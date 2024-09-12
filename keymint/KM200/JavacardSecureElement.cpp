@@ -51,12 +51,19 @@
 namespace keymint::javacard {
 
 keymaster_error_t JavacardSecureElement::initializeJavacard() {
+  keymaster_error_t ret = KM_ERROR_OK;
+  if (!isCardInitialized_) {
     Array request;
     request.add(Uint(getOsVersion()));
     request.add(Uint(getOsPatchlevel()));
     request.add(Uint(getVendorPatchlevel()));
     auto [item, err] = sendRequest(Instruction::INS_SET_BOOT_PARAMS_CMD, request);
-    return err;
+    if (err == KM_ERROR_OK) {
+      isCardInitialized_ = true;
+    }
+    ret = err;
+  }
+  return ret;
 }
 
 keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
@@ -101,17 +108,18 @@ keymaster_error_t JavacardSecureElement::sendData(Instruction ins, std::vector<u
         return ret;
     }
 
-    if (!transport_->sendData(apdu, response)) {
-        LOG(ERROR) << "Error in sending data in sendData.";
-        return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
+    if (!transport_->sendData(apdu, response) && (response.size() < 2)) {
+      LOG(ERROR) << "Error in sending data in sendData.";
+      return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
 
     // Response size should be greater than 2. Cbor output data followed by two bytes of APDU
     // status.
-    if ((response.size() <= 2) || (getApduStatus(response) != APDU_RESP_STATUS_OK)) {
-        LOG(ERROR) << "Response of the sendData is wrong: response size = " << response.size()
-                   << " apdu status = " << getApduStatus(response);
-        return (KM_ERROR_UNKNOWN_ERROR);
+    if (getApduStatus(response) != APDU_RESP_STATUS_OK) {
+      LOG(ERROR) << "Response of the sendData is wrong: response size = "
+                 << response.size()
+                 << " apdu status = " << getApduStatus(response);
+      return (KM_ERROR_UNKNOWN_ERROR);
     }
     // remove the status bytes
     response.pop_back();
