@@ -29,22 +29,28 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
 
 #include "JavacardKeyMintOperation.h"
+#include "CborConverter.h"
 #include <JavacardKeyMintUtils.h>
 #include <aidl/android/hardware/security/keymint/ErrorCode.h>
 #include <aidl/android/hardware/security/secureclock/ISecureClock.h>
 #include <android-base/logging.h>
 
 namespace aidl::android::hardware::security::keymint {
-using namespace ::keymint::javacard;
+using cppbor::Bstr;
+using cppbor::Uint;
 using secureclock::TimeStampToken;
 
 JavacardKeyMintOperation::~JavacardKeyMintOperation() {
+#ifdef NXP_EXTNS
+    card_->setOperationState(::keymint::javacard::CryptoOperationState::FINISHED);
+#endif
+
     if (opHandle_ != 0) {
         abort();
     }

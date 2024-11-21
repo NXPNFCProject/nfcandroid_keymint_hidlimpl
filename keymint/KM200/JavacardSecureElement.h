@@ -14,36 +14,38 @@
  * limitations under the License.
  */
 /******************************************************************************
-*
-*  The original Work has been changed by NXP.
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  Copyright 2022 NXP
-*
-******************************************************************************/
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2022-2024 NXP
+ *
+ ******************************************************************************/
 #pragma once
 
 #include "CborConverter.h"
 #include <ITransport.h>
 
 #define APDU_CLS 0x80
-//#define APDU_P1 0x50
+// #define APDU_P1 0x50
 #define APDU_P1 0x40
 #define APDU_P2 0x00
 #define APDU_RESP_STATUS_OK 0x9000
 
 #define KEYMINT_CMD_APDU_START 0x20
+
+#define KEYMINT_VENDOR_CMD_APDU_START 0xD0
 
 namespace keymint::javacard {
 using ndk::ScopedAStatus;
@@ -79,7 +81,7 @@ enum class Instruction {
     INS_BEGIN_IMPORT_WRAPPED_KEY_CMD = KEYMINT_CMD_APDU_START + 24,
     INS_FINISH_IMPORT_WRAPPED_KEY_CMD = KEYMINT_CMD_APDU_START + 25,
     //INS_SET_BOOT_PARAMS_CMD = KEYMINT_CMD_APDU_START + 26,
-    INS_SET_BOOT_PARAMS_CMD = 9,
+    INS_SET_BOOT_PARAMS_CMD = KEYMINT_VENDOR_CMD_APDU_START + 9,
     // RKP Commands
     INS_GET_RKP_HARDWARE_INFO = KEYMINT_CMD_APDU_START + 27,
     INS_GENERATE_RKP_KEY_CMD = KEYMINT_CMD_APDU_START + 28,
@@ -94,12 +96,18 @@ enum class Instruction {
     INS_SEND_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 47,
 };
 
+#ifdef NXP_EXTNS
+enum CryptoOperationState { STARTED = 0, FINISHED };
+#endif
+
 class JavacardSecureElement {
   public:
-    explicit JavacardSecureElement(shared_ptr<ITransport> transport, uint32_t osVersion,
-                                   uint32_t osPatchLevel, uint32_t vendorPatchLevel)
-        : transport_(transport), osVersion_(osVersion), osPatchLevel_(osPatchLevel),
-          vendorPatchLevel_(vendorPatchLevel) {
+    explicit JavacardSecureElement(shared_ptr<ITransport> transport,
+                                   uint32_t osVersion, uint32_t osPatchLevel,
+                                   uint32_t vendorPatchLevel)
+        : transport_(std::move(transport)), osVersion_(osVersion),
+          osPatchLevel_(osPatchLevel), vendorPatchLevel_(vendorPatchLevel),
+          isCardInitialized_(false) {
         transport_->openConnection();
     }
     virtual ~JavacardSecureElement() { transport_->closeConnection(); }
@@ -122,10 +130,14 @@ class JavacardSecureElement {
         return (SW0 << 8 | SW1);
     }
 
+#ifdef NXP_EXTNS
+    void setOperationState(CryptoOperationState state);
+#endif
     shared_ptr<ITransport> transport_;
     uint32_t osVersion_;
     uint32_t osPatchLevel_;
     uint32_t vendorPatchLevel_;
+    bool isCardInitialized_;
     CborConverter cbor_;
 };
 }  // namespace keymint::javacard

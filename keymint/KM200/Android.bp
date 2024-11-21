@@ -69,6 +69,7 @@ cc_library {
         "libcutils",
         "libjc_keymint_transport.nxp",
         "libbinder_ndk",
+        "libmemunreachable",
         "android.hardware.security.keymint-V2-ndk",
         "android.hardware.security.rkp-V2-ndk",
     ],

@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2022 NXP
+ ** Copyright 2020-2023 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox-service"
@@ -54,8 +54,10 @@
 #endif
 
 using aidl::android::hardware::security::keymint::JavacardKeyMintDevice;
-using aidl::android::hardware::security::keymint::JavacardSharedSecret;
+using aidl::android::hardware::security::keymint::
+    JavacardRemotelyProvisionedComponentDevice;
 using aidl::android::hardware::security::keymint::SecurityLevel;
+using aidl::android::hardware::security::sharedsecret::JavacardSharedSecret;
 using namespace keymint::javacard;
 
 const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
@@ -76,7 +78,7 @@ int main() {
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(std::make_shared<OmapiTransport>(gStrongBoxAppletAID), getOsVersion(),
+        std::make_shared<JavacardSecureElement>(OmapiTransport::make(gStrongBoxAppletAID), getOsVersion(),
                                                 getOsPatchlevel(), getVendorPatchlevel());
 #elif defined HAL_TO_HAL_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =

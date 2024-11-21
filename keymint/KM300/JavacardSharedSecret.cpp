@@ -14,7 +14,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2021-2022 NXP
+ ** Copyright 2021-2022, 2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -36,13 +36,14 @@ using ::keymint::javacard::Instruction;
 static uint8_t getSharedSecretRetryCount = 0x00;
 
 ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParameters* params) {
-    auto error = card_->initializeJavacard();
-    if (error != KM_ERROR_OK) {
-        LOG(ERROR) << "Error in initializing javacard.";
-    }
+#ifdef INIT_USING_SEHAL_TRANSPORT
+    auto [item, err] = card_->sendRequestSeHal(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
+#else
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
+#endif
 #ifdef NXP_EXTNS
-    if (err != KM_ERROR_OK && (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
+    if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED &&
+        (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
         getSharedSecretRetryCount++;
     } else if (err != KM_ERROR_OK) {
         std::vector<uint8_t> refNonceSeed = {
@@ -68,17 +69,17 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
     return ScopedAStatus::ok();
 }
 
-ScopedAStatus
-JavacardSharedSecret::computeSharedSecret(const std::vector<SharedSecretParameters>& params,
-                                          std::vector<uint8_t>* secret) {
-    card_->sendPendingEvents();
-    auto error = card_->initializeJavacard();
-    if (error != KM_ERROR_OK) {
-        LOG(ERROR) << "Error in initializing javacard.";
-    }
+ScopedAStatus JavacardSharedSecret::computeSharedSecret(
+    const std::vector<SharedSecretParameters>& params, std::vector<uint8_t>* secret) {
     cppbor::Array request;
     cbor_.addSharedSecretParameters(request, params);
-    auto [item, err] = card_->sendRequest(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request);
+#ifdef INIT_USING_SEHAL_TRANSPORT
+    auto [item, err] =
+        card_->sendRequestSeHal(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request.encode());
+#else
+    auto [item, err] =
+        card_->sendRequest(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request.encode());
+#endif
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in computeSharedSecret.";
         return keymint::km_utils::kmError2ScopedAStatus(err);

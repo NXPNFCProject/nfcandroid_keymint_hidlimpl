@@ -30,20 +30,21 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
 #if defined OMAPI_TRANSPORT
 #include "OmapiTransport.h"
 
-#include <stdio.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <unistd.h>
-#include <string.h>
-#include <vector>
 #include <iomanip>
+#include <map>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
 
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
@@ -69,6 +70,11 @@ constexpr const char kChannelWakelockName[] = "nxp_keymint_channel";
 class SEListener : public ::aidl::android::se::omapi::BnSecureElementListener {};
 
 #ifdef NXP_EXTNS
+
+static std::mutex sCookiesMutex;
+static uintptr_t sCookiesKeyCounter = 0;
+static std::map<uintptr_t, std::weak_ptr<OmapiTransport>> sCookies;
+
 void omapiSessionTimerFunc(union sigval arg){
      LOG(INFO) << "Session Timer expired !!";
      OmapiTransport *obj = (OmapiTransport*)arg.sival_ptr;
@@ -77,11 +83,38 @@ void omapiSessionTimerFunc(union sigval arg){
 }
 
 void OmapiTransport::BinderDiedCallback(void *cookie) {
-  LOG(ERROR) << "Received binder died. OMAPI Service died";
-  auto thiz = static_cast<OmapiTransport *>(cookie);
-  thiz->closeConnection();
+    std::shared_ptr<OmapiTransport> transport = nullptr;
+    {
+      std::lock_guard lock(sCookiesMutex);
+      if (auto it = sCookies.find(reinterpret_cast<uintptr_t>(cookie));
+          it != sCookies.end()) {
+        LOG(ERROR)
+            << "Received binder died with cookie: " << cookie
+            << ". OMAPI Service died, closing connection";
+        transport = it->second.lock();
+      } else {
+        LOG(ERROR)
+            << "Received binder died with cookie: " << cookie
+            << ". OMAPI Service died, but no OmapiTransport.";
+      }
+    }
+    if (transport) {
+      transport->closeConnection();
+    }
 }
 #endif
+
+OmapiTransport::~OmapiTransport() {
+#ifdef NXP_EXTNS
+  std::lock_guard sLock(sCookiesMutex);
+  std::lock_guard mLock(mCookieKeysMutex);
+  for (auto cookie : mCookieKeys) {
+    LOG(INFO) << "OmapiTransport destructor cleaning up death recipient cookie("
+              << cookie << ") as we no longer need to listen for service death.";
+    sCookies.erase(cookie);
+  }
+#endif
+}
 
 bool OmapiTransport::initialize() {
     LOG(DEBUG) << "Initialize the secure element connection";
@@ -101,8 +134,17 @@ bool OmapiTransport::initialize() {
     }
 
 #ifdef NXP_EXTNS
-    AIBinder_linkToDeath(omapiSeService->asBinder().get(),
-                         mDeathRecipient.get(), this);
+    {
+      std::lock_guard sLock(sCookiesMutex);
+      uintptr_t cookieKey = sCookiesKeyCounter++;
+      std::lock_guard mLock(mCookieKeysMutex);
+      mCookieKeys.push_back(cookieKey);
+      sCookies[cookieKey] = shared_from_this();
+      LOG(INFO) << "linkToDeath on OMAPI service with cookie: " << cookieKey;
+      AIBinder_linkToDeath(omapiSeService->asBinder().get(),
+                           mDeathRecipient.get(),
+                           reinterpret_cast<void *>(cookieKey));
+    }
 #endif
 
     // reset readers, clear readers if already existing
@@ -245,9 +287,9 @@ bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& ou
 #endif
     if (!isConnected()) {
         // Try to initialize connection to eSE
-        LOG(INFO) << "Failed to send data, try to initialize connection SE connection";
+        LOG(INFO) << "Not connected, try to initialize connection to OMAPI";
         if (!initialize()) {
-            LOG(ERROR) << "Failed to send data, initialization not completed";
+            LOG(ERROR) << "Failed to connect to OMAPI";
             closeConnection();
             return false;
         }
@@ -286,8 +328,16 @@ bool OmapiTransport::closeConnection() {
     }
 #ifdef NXP_EXTNS
     if (omapiSeService != nullptr) {
-      AIBinder_unlinkToDeath(omapiSeService->asBinder().get(),
-                             mDeathRecipient.get(), this);
+      std::lock_guard sLock(sCookiesMutex);
+      std::lock_guard mLock(mCookieKeysMutex);
+      for (auto cookie : mCookieKeys) {
+        LOG(INFO) << "unlinkToDeath on OMAPI service with cookie: " << cookie;
+        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(),
+                               mDeathRecipient.get(),
+                               reinterpret_cast<void *>(cookie));
+        sCookies.erase(cookie);
+      }
+      mCookieKeys.clear();
       omapiSeService = nullptr;
     }
     session = nullptr;
@@ -321,6 +371,10 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     //auto mSEListener = std::make_shared<SEListener>();
     std::vector<uint8_t> selectResponse = {};
     const std::vector<uint8_t> sbAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+    bool isSBAppletAID = false;
+    if (sbAppletAID == mSelectableAid) {
+        isSBAppletAID = true;
+    }
 
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
@@ -351,7 +405,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
-      if (!mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+      if (isSBAppletAID && !mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
         LOG(ERROR) << "Select / Command INS not allowed";
         prepareErrorRepsponse(transmitResponse);
         return false;
@@ -366,6 +420,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       }
       if (channel == nullptr) {
         LOG(ERROR) << "Could not open channel null";
+        prepareErrorRepsponse(transmitResponse);
         return false;
       }
 
@@ -381,21 +436,20 @@ bool OmapiTransport::internalProtectedTransmitApdu(
           LOG(ERROR) << "Failed to select the Applet.";
           return false;
       }
-      if (sbAppletAID == mSelectableAid) {
-        mSBAccessController.parseResponse(selectResponse);
+      if (isSBAppletAID) {
+          mSBAccessController.parseResponse(selectResponse);
       }
     }
 
-    status = false;
-    if (mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
+    if (!isSBAppletAID ||
+        mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
 #ifdef ENABLE_DEBUG_LOG
       LOGD_OMAPI("constructed apdu: " << apdu);
 #endif
       res = channel->transmit(apdu, &transmitResponse);
-      status = true;
     } else {
-        LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
-        prepareErrorRepsponse(transmitResponse);
+      LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
+      prepareErrorRepsponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
@@ -428,7 +482,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         LOG(ERROR) << "transmit error: " << res.getMessage();
         return false;
     }
-    return status;
+    return true;
 }
 
 void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
@@ -467,7 +521,19 @@ bool OmapiTransport::openChannelToApplet() {
   return false;
 }
 
-#endif
+void OmapiTransport::setCryptoOperationState(uint8_t state) {
+    mSBAccessController.setCryptoOperationState(state);
+
+    int timeout = mSBAccessController.getSessionTimeout();
+
+    LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
+    if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
+        LOG(ERROR) << "Set Timer Failed !!!";
+        closeChannel();
+    }
+}
+
+#endif  // NXP_EXTNS
 
 }  // namespace keymint::javacard
 #endif // OMAPI_TRANSPORT

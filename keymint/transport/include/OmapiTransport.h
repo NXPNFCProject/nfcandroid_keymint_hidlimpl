@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #if defined OMAPI_TRANSPORT
@@ -47,11 +47,10 @@
 
 #include <map>
 
-#include "ITransport.h"
-#include <AppletConnection.h>
 #include <IntervalTimer.h>
 #include <memory>
 #include <vector>
+#include "ITransport.h"
 
 #include <SBAccessController.h>
 
@@ -66,18 +65,14 @@ using std::vector;
  * OmapiTransport is derived from ITransport. This class gets the OMAPI service binder instance and uses IPC to
  * communicate with OMAPI service. OMAPI inturn communicates with hardware via ISecureElement.
  */
-class OmapiTransport : public ITransport {
+class OmapiTransport : public std::enable_shared_from_this<OmapiTransport>,
+                       public ITransport {
 
 public:
-  OmapiTransport(const std::vector<uint8_t> &mAppletAID)
-      : ITransport(mAppletAID), mTimeout(0), mSelectableAid(mAppletAID),
-        omapiSeService(nullptr), eSEReader(nullptr), session(nullptr),
-        channel(nullptr), mVSReaders({}) {
-#ifdef NXP_EXTNS
-    mDeathRecipient = ::ndk::ScopedAIBinder_DeathRecipient(
-        AIBinder_DeathRecipient_new(BinderDiedCallback));
-#endif
+  static shared_ptr<OmapiTransport> make(const std::vector<uint8_t> &mAppletAID) {
+    return std::shared_ptr<OmapiTransport>(new OmapiTransport(mAppletAID));
   }
+  virtual ~OmapiTransport();
 
 #ifdef NXP_EXTNS
   /**
@@ -87,6 +82,12 @@ public:
     mSelectableAid = aid;
     return true;
   }
+
+  /**
+   * Sets state(start/finish) of crypto operation.
+   * This is required for channel session timeout mgmt.
+   */
+  void setCryptoOperationState(uint8_t state) override;
 #endif
     /**
      * Gets the binder instance of ISEService, gets te reader corresponding to secure element,
@@ -119,7 +120,7 @@ public:
 
   private:
     //AppletConnection mAppletConnection;
-    SBAccessController mSBAccessController;
+    SBAccessController& mSBAccessController;
     IntervalTimer mTimer;
     int mTimeout;
     std::vector<uint8_t> mSelectableAid;
@@ -133,6 +134,21 @@ public:
     /* Applet ID Weaver */
     const std::vector<uint8_t> kWeaverAID = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x10, 0x10};
 #endif
+  OmapiTransport(const std::vector<uint8_t>& mAppletAID)
+      : ITransport(mAppletAID),
+        mSBAccessController(SBAccessController::getInstance()),
+        mTimeout(0),
+        mSelectableAid(mAppletAID),
+        omapiSeService(nullptr),
+        eSEReader(nullptr),
+        session(nullptr),
+        channel(nullptr),
+        mVSReaders({}) {
+#ifdef NXP_EXTNS
+      mDeathRecipient = ::ndk::ScopedAIBinder_DeathRecipient(
+          AIBinder_DeathRecipient_new(BinderDiedCallback));
+#endif
+    }
     bool initialize();
     bool internalTransmitApdu(
             std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
@@ -140,6 +156,8 @@ public:
 
 #ifdef NXP_EXTNS
     ::ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
+    std::mutex mCookieKeysMutex;
+    std::vector<uintptr_t> mCookieKeys;
 
     static void BinderDiedCallback(void *cookie);
     bool internalProtectedTransmitApdu(

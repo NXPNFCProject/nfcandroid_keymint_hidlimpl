@@ -13,6 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/******************************************************************************
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2023-2024 NXP
+ *
+ ******************************************************************************/
 
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardSecureElement.h"
@@ -31,14 +50,20 @@
 
 namespace keymint::javacard {
 
-using namespace ::keymaster;
 keymaster_error_t JavacardSecureElement::initializeJavacard() {
-    Array request;
-    request.add(Uint(getOsVersion()));
-    request.add(Uint(getOsPatchlevel()));
-    request.add(Uint(getVendorPatchlevel()));
-    auto [item, err] = sendRequest(Instruction::INS_SET_BOOT_PARAMS_CMD, request);
-    return err;
+    keymaster_error_t ret = KM_ERROR_OK;
+    if (!isCardInitialized_) {
+        Array request;
+        request.add(Uint(getOsVersion()));
+        request.add(Uint(getOsPatchlevel()));
+        request.add(Uint(getVendorPatchlevel()));
+        auto [item, err] = sendRequest(Instruction::INS_SET_BOOT_PARAMS_CMD, request);
+        if (err == KM_ERROR_OK) {
+            isCardInitialized_ = true;
+        }
+        ret = err;
+    }
+    return ret;
 }
 
 keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
@@ -83,16 +108,15 @@ keymaster_error_t JavacardSecureElement::sendData(Instruction ins, std::vector<u
         return ret;
     }
 
-    if (!transport_->sendData(apdu, response)) {
-        LOG(ERROR) << "Error in sending data in sendData.";
+    if (!transport_->sendData(apdu, response) && (response.size() < 2)) {
+        LOG(ERROR) << "Error in sending C-APDU";
         return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
-
-    // Response size should be greater than 2. Cbor output data followed by two bytes of APDU
-    // status.
-    if ((response.size() <= 2) || (getApduStatus(response) != APDU_RESP_STATUS_OK)) {
-        LOG(ERROR) << "Response of the sendData is wrong: response size = " << response.size()
-                   << " apdu status = " << getApduStatus(response);
+    // Response size should be greater than 2. Cbor output data followed by two
+    // bytes of APDU status.
+    if (getApduStatus(response) != APDU_RESP_STATUS_OK) {
+        LOG(ERROR) << "ERROR Response apdu status = " << std::uppercase << std::hex
+                   << getApduStatus(response);
         return (KM_ERROR_UNKNOWN_ERROR);
     }
     // remove the status bytes
@@ -136,5 +160,11 @@ JavacardSecureElement::sendRequest(Instruction ins) {
     // decode the response and send that back
     return cbor_.decodeData(response);
 }
+
+#ifdef NXP_EXTNS
+void JavacardSecureElement::setOperationState(CryptoOperationState state) {
+    transport_->setCryptoOperationState(state);
+}
+#endif
 
 }  // namespace keymint::javacard

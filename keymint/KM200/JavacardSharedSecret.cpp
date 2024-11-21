@@ -14,7 +14,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2021-2022 NXP
+ ** Copyright 2021-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -22,17 +22,17 @@
 
 #include "JavacardSharedSecret.h"
 #include <JavacardKeyMintUtils.h>
+#include <memunreachable/memunreachable.h>
 
 /* 1 sec delay till OMAPI service initialized (~ 30 to 40 secs)
  * 20 retry as per transport layer retry logic.
  * Each retry logic takes 11~12 secs*/
-#define MAX_SHARED_SECRET_RETRY_COUNT 60
+/* OMAPI may take longer to load after a factory reset. */
+#define MAX_SHARED_SECRET_RETRY_COUNT 120
 
 namespace aidl::android::hardware::security::sharedsecret {
-using namespace ::keymint::javacard;
+using ::keymint::javacard::Instruction;
 using ndk::ScopedAStatus;
-using std::optional;
-using std::shared_ptr;
 using std::vector;
 
 static uint8_t getSharedSecretRetryCount = 0x00;
@@ -41,7 +41,8 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
     card_->initializeJavacard();
     auto [item, err] = card_->sendRequest(Instruction::INS_GET_SHARED_SECRET_PARAM_CMD);
 #ifdef NXP_EXTNS
-    if (err != KM_ERROR_OK && (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
+    if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED &&
+        (getSharedSecretRetryCount < MAX_SHARED_SECRET_RETRY_COUNT)) {
         getSharedSecretRetryCount++;
     } else if (err != KM_ERROR_OK) {
         std::vector<uint8_t> refNonceSeed = {
@@ -56,7 +57,7 @@ ScopedAStatus JavacardSharedSecret::getSharedSecretParameters(SharedSecretParame
 #endif
     if (err != KM_ERROR_OK || !cbor_.getSharedSecretParameters(item, 1, *params)) {
         LOG(ERROR) << "Error in sending in getSharedSecretParameters.";
-        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+        return keymint::km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
     return ScopedAStatus::ok();
 }
@@ -71,13 +72,19 @@ JavacardSharedSecret::computeSharedSecret(const std::vector<SharedSecretParamete
     auto [item, err] = card_->sendRequest(Instruction::INS_COMPUTE_SHARED_SECRET_CMD, request);
     if (err != KM_ERROR_OK) {
         LOG(ERROR) << "Error in sending in computeSharedSecret.";
-        return km_utils::kmError2ScopedAStatus(err);
+        return keymint::km_utils::kmError2ScopedAStatus(err);
     }
     if (!cbor_.getBinaryArray(item, 1, *secret)) {
         LOG(ERROR) << "Error in decoding the response in computeSharedSecret.";
-        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+        return keymint::km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
     return ScopedAStatus::ok();
+}
+
+binder_status_t JavacardSharedSecret::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
+    LOG(INFO) << "\n KeyMint-JavacardSharedSecret HAL MemoryLeak Info = \n"
+              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
+    return STATUS_OK;
 }
 
 }  // namespace aidl::android::hardware::security::sharedsecret

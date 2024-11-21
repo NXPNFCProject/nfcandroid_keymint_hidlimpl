@@ -65,6 +65,7 @@ using keymint::javacard::JavacardSecureElement;
 #if defined OMAPI_TRANSPORT
 using keymint::javacard::OmapiTransport;
 #elif defined HAL_TO_HAL_TRANSPORT
+using keymint::javacard::HalToHalTransport;
 #else
 using keymint::javacard::SocketTransport;
 #endif
@@ -88,7 +89,7 @@ int main() {
 #if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
         std::make_shared<JavacardSecureElement>(
-            std::make_shared<OmapiTransport>(gStrongBoxAppletAID));
+            OmapiTransport::make(gStrongBoxAppletAID));
 #elif defined HAL_TO_HAL_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
         std::make_shared<JavacardSecureElement>(
