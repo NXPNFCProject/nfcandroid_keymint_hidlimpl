@@ -42,9 +42,6 @@ cc_library {
     srcs: [
         "*.cpp",
     ],
-    defaults: [
-        "keymint_use_latest_hal_aidl_ndk_shared",
-    ],
     cflags: [
         "-DOMAPI_TRANSPORT",
         "-DINTERVAL_TIMER",
