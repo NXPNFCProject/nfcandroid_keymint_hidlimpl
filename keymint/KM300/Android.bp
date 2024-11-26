@@ -59,7 +59,7 @@ cc_library {
         "android.hardware.security.rkp-V3-ndk",
         "android.hardware.security.secureclock-V1-ndk",
         "android.hardware.security.sharedsecret-V1-ndk",
-        "lib_android_keymaster_keymint_utils",
+        "lib_android_keymaster_keymint_utils_V3",
         "libbase",
         "libbinder",
         "libcppbor",
@@ -105,7 +105,7 @@ cc_binary {
     shared_libs: [
         "android.hardware.security.rkp-V3-ndk",
         "android.hardware.security.sharedsecret-V1-ndk",
-        "lib_android_keymaster_keymint_utils",
+        "lib_android_keymaster_keymint_utils_V3",
         "android.se.omapi-V1-ndk",
         "libbase",
         "libbinder_ndk",
