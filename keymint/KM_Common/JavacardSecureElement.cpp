@@ -109,9 +109,15 @@ void JavacardSecureElement::sendPendingEvents() {
 keymaster_error_t JavacardSecureElement::constructApduMessage(Instruction& ins,
                                                               const std::vector<uint8_t>& inputData,
                                                               std::vector<uint8_t>& apduOut) {
+    uint8_t p1;
+    auto err = getP1(&p1);
+    if (KM_ERROR_OK != err) {
+        LOG(ERROR) << "Kmversion(" << static_cast<int>(version_) << ") is not supported";
+        return err;
+    }
     apduOut.push_back(static_cast<uint8_t>(APDU_CLS));  // CLS
     apduOut.push_back(static_cast<uint8_t>(ins));       // INS
-    apduOut.push_back(static_cast<uint8_t>(APDU_P1));   // P1
+    apduOut.push_back(static_cast<uint8_t>(p1));   // P1
     apduOut.push_back(static_cast<uint8_t>(APDU_P2));   // P2
 
     if (USHRT_MAX >= inputData.size()) {
@@ -245,6 +251,21 @@ std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::send
     // decode the response and send that back
     return cbor_.decodeData(response);
 }
+
+keymaster_error_t JavacardSecureElement::getP1(uint8_t* p1) {
+    switch (version_) {
+    case KmVersion::KEYMINT_3:
+        *p1 = APDU_KEYMINT_3_P1;
+        break;
+    case KmVersion::KEYMINT_4:
+        *p1 = APDU_KEYMINT_4_P1;
+        break;
+    default:
+        return KM_ERROR_UNIMPLEMENTED;
+    }
+    return KM_ERROR_OK;
+}
+
 #ifdef NXP_EXTNS
 void JavacardSecureElement::setOperationState(CryptoOperationState state) {
     transport_->setCryptoOperationState(state);

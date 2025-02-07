@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022,2024-2025 NXP
+ ** Copyright 2022,2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -240,6 +240,9 @@ keymaster_error_t JavacardKeyMintOperation::updateInChunks(DataView& view,
         if (sendError != KM_ERROR_OK) {
             return sendError;
         }
+        // Clear tokens
+        if (!authToken.mac.empty()) authToken = HardwareAuthToken();
+        if (!timestampToken.mac.empty()) timestampToken = TimeStampToken();
     }
     return KM_ERROR_OK;
 }

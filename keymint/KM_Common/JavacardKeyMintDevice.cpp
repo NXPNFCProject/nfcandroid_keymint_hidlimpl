@@ -32,7 +32,6 @@
  *  Copyright 2022,2024 NXP
  *
  ******************************************************************************/
-#define LOG_TAG "javacard.keymint.device.strongbox-impl"
 #include "JavacardKeyMintDevice.h"
 
 #include <regex.h>
@@ -52,10 +51,11 @@
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/wrapped_key.h>
 
-#include "JavacardKeyMintOperation.h"
 #include "JavacardSharedSecret.h"
 
-namespace aidl::android::hardware::security::keymint {
+namespace keymint::javacard {
+using aidl::android::hardware::security::keymint::Tag;
+namespace km_utils = ::aidl::android::hardware::security::keymint::km_utils;
 using cppbor::Bstr;
 using cppbor::EncodedItem;
 using cppbor::Uint;
@@ -312,7 +312,7 @@ ScopedAStatus JavacardKeyMintDevice::destroyAttestationIds() {
 ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector<uint8_t>& keyBlob,
                                            const std::vector<KeyParameter>& params,
                                            const std::optional<HardwareAuthToken>& authToken,
-                                           BeginResult* result) {
+                                           SEKeyMintBeginResult* beginResult) {
     card_->sendPendingEvents();
     cppbor::Array array;
     std::vector<uint8_t> response;
@@ -338,11 +338,11 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
         LOG(ERROR) << "Error in decoding the response in begin.";
         return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
-    result->params = std::move(keyParams.value());
-    result->challenge = optOpHandle.value();
-    result->operation = ndk::SharedRefBase::make<JavacardKeyMintOperation>(
-        static_cast<keymaster_operation_handle_t>(optOpHandle.value()),
-        static_cast<BufferingMode>(optBufMode.value()), optMacLength.value(), card_);
+    beginResult->params = std::move(keyParams.value());
+    beginResult->challenge = optOpHandle.value();
+    beginResult->bufMode = optBufMode.value();
+    beginResult->opHandle = optOpHandle.value();
+    beginResult->macLength = optMacLength.value();
     return ScopedAStatus::ok();
 }
 
@@ -487,4 +487,20 @@ binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, 
     return STATUS_OK;
 }
 
-}  // namespace aidl::android::hardware::security::keymint
+ScopedAStatus
+JavacardKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& keyParams) {
+    if (!keyParams.empty()) {
+        cppbor::Array request;
+        cbor_.addKeyparameters(request, keyParams);
+        auto [item, err] =
+            card_->sendRequest(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO, request);
+        if (err != KM_ERROR_OK) {
+            LOG(ERROR) << "Error in sending in setAdditionalAttestationInfo.";
+            return km_utils::kmError2ScopedAStatus(err);
+        }
+        LOG(INFO) << "JavacardKeyMint::setAdditionalAttestationInfo success";
+    }
+    return ScopedAStatus::ok();
+}
+
+}  // namespace keymint::javacard

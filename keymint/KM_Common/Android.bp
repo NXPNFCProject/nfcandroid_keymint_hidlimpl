@@ -43,6 +43,7 @@ cc_library {
     ],
     srcs: [
         "CborConverter.cpp",
+        "JavacardKeyMint3Device.cpp",
         "JavacardKeyMintDevice.cpp",
         "JavacardKeyMintOperation.cpp",
         "JavacardRemotelyProvisionedComponentDevice.cpp",
@@ -61,7 +62,6 @@ cc_library {
         "android.hardware.security.sharedsecret-V1-ndk",
         "lib_android_keymaster_keymint_utils_V3",
         "libbase",
-        "libbinder",
         "libcppbor",
         "libkeymaster_portable",
         "libkeymaster_messages",
@@ -69,7 +69,6 @@ cc_library {
         "liblog",
         "libcrypto",
         "libcutils",
-        "libutils",
         "libjc_keymint_transport.nxp",
         "libbinder_ndk",
         "libmemunreachable",
@@ -121,16 +120,120 @@ cc_binary {
         "android.hardware.secure_element-V1-ndk",
     ],
     srcs: [
-        "service.cpp",
+        "KeyMint3Service.cpp",
     ],
     required: [
         "android.hardware.hardware_keystore.jc-strongbox-keymint3.nxp.xml",
     ],
 }
 
+cc_library {
+    name: "libjc_keymint4.nxp",
+    defaults: [
+        "keymaster_defaults",
+        "keymint_use_latest_hal_aidl_ndk_shared",
+    ],
+    srcs: [
+        "CborConverter.cpp",
+        "JavacardKeyMint4Device.cpp",
+        "JavacardKeyMintDevice.cpp",
+        "JavacardKeyMintOperation.cpp",
+        "JavacardRemotelyProvisionedComponentDevice.cpp",
+        "JavacardSecureElement.cpp",
+        "JavacardSharedSecret.cpp",
+        "keymint_utils.cpp",
+    ],
+    cflags: [
+        "-O0",
+        "-DNXP_EXTNS",
+        "-DINIT_USING_SEHAL_TRANSPORT",
+    ],
+    shared_libs: [
+        "android.hardware.security.rkp-V3-ndk",
+        "android.hardware.security.secureclock-V1-ndk",
+        "android.hardware.security.sharedsecret-V1-ndk",
+        "lib_android_keymaster_keymint_utils",
+        "libbase",
+        "libcppbor",
+        "libkeymaster_portable",
+        "libkeymaster_messages",
+        "libsoft_attestation_cert",
+        "liblog",
+        "libcrypto",
+        "libcutils",
+        "libjc_keymint_transport.nxp",
+        "libbinder_ndk",
+        "libmemunreachable",
+        "android.hardware.secure_element-V1-ndk",
+    ],
+    export_include_dirs: [
+        ".",
+    ],
+    product_variables: {
+        debuggable: {
+            cflags: ["-DDCHECK_ALWAYS_ON"],
+        },
+    },
+    vendor_available: true,
+}
+
+cc_binary {
+    name: "android.hardware.security.keymint4-service.strongbox.nxp",
+    relative_install_path: "hw",
+    init_rc: ["android.hardware.security.keymint4-service.strongbox.nxp.rc"],
+    vintf_fragments: [
+        "android.hardware.security.keymint4-service.strongbox.nxp.xml",
+        "android.hardware.security.sharedsecret-service.strongbox4.nxp.xml",
+    ],
+    vendor: true,
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-DOMAPI_TRANSPORT",
+        "-DNXP_EXTNS",
+    ],
+    defaults: [
+        "keymint_use_latest_hal_aidl_ndk_shared",
+    ],
+    shared_libs: [
+        "android.hardware.security.rkp-V3-ndk",
+        "android.hardware.security.sharedsecret-V1-ndk",
+        "lib_android_keymaster_keymint_utils",
+        "android.se.omapi-V1-ndk",
+        "libbase",
+        "libbinder_ndk",
+        "libcppbor",
+        "libcrypto",
+        "libkeymaster_portable",
+        "libjc_keymint4.nxp",
+        "libjc_keymint_transport.nxp",
+        "liblog",
+        "libutils",
+        "libhidlbase",
+        "android.hardware.secure_element-V1-ndk",
+    ],
+    srcs: [
+        "KeyMint4Service.cpp",
+    ],
+    required: [
+        "android.hardware.hardware_keystore.jc-strongbox-keymint4.nxp.xml",
+    ],
+}
+
+// The following targets (and underlying XML files) declare specific
+// versions of KeyMint.  Vendors should use the version that matches the
+// version of the KeyMint HAL that the device implements.
+
 prebuilt_etc {
     name: "android.hardware.hardware_keystore.jc-strongbox-keymint3.nxp.xml",
     sub_dir: "permissions",
     vendor: true,
     src: "android.hardware.hardware_keystore.jc-strongbox-keymint3.nxp.xml",
+}
+
+prebuilt_etc {
+    name: "android.hardware.hardware_keystore.jc-strongbox-keymint4.nxp.xml",
+    sub_dir: "permissions",
+    vendor: true,
+    src: "android.hardware.hardware_keystore.jc-strongbox-keymint4.nxp.xml",
 }

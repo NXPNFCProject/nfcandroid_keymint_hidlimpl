@@ -33,13 +33,14 @@
 *
 ******************************************************************************/
 #pragma once
-
+#include <keymaster/km_version.h>
 #include <ITransport.h>
 #include "CborConverter.h"
 
 #define APDU_CLS 0x80
 //#define APDU_P1 0x50
-#define APDU_P1 0x60
+#define APDU_KEYMINT_3_P1 0x60
+#define APDU_KEYMINT_4_P1 0x70
 #define APDU_P2 0x00
 #define APDU_RESP_STATUS_OK 0x9000
 
@@ -48,6 +49,7 @@
 #define KEYMINT_VENDOR_CMD_APDU_START 0xD0
 
 namespace keymint::javacard {
+using keymaster::KmVersion;
 using std::shared_ptr;
 using std::vector;
 
@@ -95,6 +97,8 @@ enum class Instruction {
     INS_GET_ROT_CHALLENGE_CMD = KEYMINT_CMD_APDU_START + 45,
     INS_GET_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 46,
     INS_SEND_ROT_DATA_CMD = KEYMINT_CMD_APDU_START + 47,
+    // MODULE HASH
+    INS_SET_ADDITIONAL_ATTESTATION_INFO = KEYMINT_CMD_APDU_START + 49,
 };
 #ifdef NXP_EXTNS
 enum CryptoOperationState { STARTED = 0, FINISHED };
@@ -102,8 +106,8 @@ enum CryptoOperationState { STARTED = 0, FINISHED };
 
 class JavacardSecureElement {
   public:
-    explicit JavacardSecureElement(shared_ptr<ITransport> transport)
-        : transport_(std::move(transport)),
+    explicit JavacardSecureElement(KmVersion version, shared_ptr<ITransport> transport)
+        : version_(version), transport_(std::move(transport)),
           isEarlyBootEndedPending(false),
           isDeleteAllKeysPending(false),
           isCardInitPending(true) {
@@ -148,6 +152,9 @@ class JavacardSecureElement {
     std::tuple<std::unique_ptr<Item>, keymaster_error_t> sendRequest(
         const std::shared_ptr<ITransport>& transport, Instruction ins,
         const std::vector<uint8_t>& command);
+    keymaster_error_t getP1(uint8_t* p1);
+
+    KmVersion version_;
     shared_ptr<ITransport> transport_;
     shared_ptr<ITransport> seHalTransport;
     bool isEarlyBootEndedPending;
