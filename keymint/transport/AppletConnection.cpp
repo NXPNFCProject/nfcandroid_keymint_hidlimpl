@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021,2024 NXP
+ ** Copyright 2020-2021,2024-2025 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "AppletConnection"
@@ -101,7 +101,7 @@ bool AppletConnection::connectToSEService() {
         return true;
     }
     bool connected = false;
-    SpAIBinder binder = SpAIBinder(AServiceManager_waitForService(eseHalServiceName));
+    SpAIBinder binder = SpAIBinder(AServiceManager_checkService(eseHalServiceName));
     mSecureElement = ISecureElement::fromBinder(binder);
     if (mSecureElement == nullptr) {
         LOG(ERROR) << "Failed to connect to Secure element service";
