@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2024 NXP
+ ** Copyright 2020-2025 NXP
  **
  *********************************************************************************/
 #include <aidl/android/hardware/security/keymint/SecurityLevel.h>
