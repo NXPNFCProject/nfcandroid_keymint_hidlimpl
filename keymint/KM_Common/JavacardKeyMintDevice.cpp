@@ -349,18 +349,7 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
 ScopedAStatus
 JavacardKeyMintDevice::deviceLocked(bool passwordOnly,
                                     const std::optional<TimeStampToken>& timestampToken) {
-    Array request;
-    int8_t password = 1;
-    if (!passwordOnly) {
-        password = 0;
-    }
-    request.add(Uint(password));
-    cbor_.addTimeStampToken(request, timestampToken.value_or(TimeStampToken()));
-    auto [item, err] = card_->sendRequest(Instruction::INS_DEVICE_LOCKED_CMD, request);
-    if (err != KM_ERROR_OK) {
-        return km_utils::kmError2ScopedAStatus(err);
-    }
-    return ScopedAStatus::ok();
+    return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
 
 ScopedAStatus JavacardKeyMintDevice::earlyBootEnded() {
