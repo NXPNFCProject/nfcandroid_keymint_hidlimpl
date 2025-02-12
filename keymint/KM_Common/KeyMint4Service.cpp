@@ -53,6 +53,21 @@
 #include <SocketTransport.h>
 #endif
 #include "keymint_utils.h"
+#include <stdint.h>
+#include <cstdio>
+
+#define NXP_EN_SN110U 1
+#define NXP_EN_SN100U 1
+#define NXP_EN_SN220U 1
+#define NXP_EN_PN557 1
+#define NXP_EN_PN560 1
+#define NXP_EN_SN300U 1
+#define NXP_EN_SN330U 1
+#define NFC_NXP_MW_ANDROID_VER (16U)  /* Android version used by NFC MW */
+#define NFC_NXP_MW_VERSION_MAJ (0x03) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
+#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
+#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
 
 using aidl::android::hardware::security::keymint::JavacardKeyMint4Device;
 using aidl::android::hardware::security::keymint::JavacardRemotelyProvisionedComponentDevice;
@@ -84,8 +99,25 @@ template <typename T, class... Args> std::shared_ptr<T> addService(Args&&... arg
     return ser;
 }
 
+static void printKeyMint4Version() {
+  uint32_t validation = (NXP_EN_SN100U << 13);
+  validation |= (NXP_EN_SN110U << 14);
+  validation |= (NXP_EN_SN220U << 15);
+  validation |= (NXP_EN_PN560 << 16);
+  validation |= (NXP_EN_SN300U << 17);
+  validation |= (NXP_EN_SN330U << 18);
+  validation |= (NXP_EN_PN557 << 11);
+
+  char version[60];  // Buffer to store formatted string
+  sprintf(version, "KEY MINT 4 Version: NFC_AR_%02X_%05X_%02d.%02X.%02X",
+          NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
+          NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
+  LOG(INFO) << version;
+}
+
 int main() {
     LOG(INFO) << "Starting javacard strongbox service";
+    printKeyMint4Version();
     ABinderProcess_setThreadPoolMaxThreadCount(0);
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
