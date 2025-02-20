@@ -52,6 +52,7 @@
 #include <android-base/properties.h>
 #include <keymaster/android_keymaster_messages.h>
 
+#include "CborConverter.h"
 #include "keymint_utils.h"
 
 namespace keymint::javacard {
@@ -103,6 +104,22 @@ void JavacardSecureElement::sendPendingEvents() {
         } else {
             LOG(ERROR) << "Error in sending earlyBootEnded.";
         }
+#ifdef NXP_EXTNS
+        if (!moduleHash.empty()) {
+            cppbor::Array request;
+            cbor_.addKeyparameters(request, moduleHash);
+            LOG(INFO) << "Send pending setAdditionalAttestationInfo";
+            auto [item, err] =
+                sendRequest(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO, request.encode());
+            if (err != KM_ERROR_OK) {
+                LOG(ERROR) << "Error sending setAdditionalAttestationInfo.";
+            } else {
+                LOG(INFO) << "setAdditionalAttestationInfo success";
+            }
+        } else {
+            LOG(INFO) << "setAdditionalAttestationInfo keyParams is empty";
+        }
+#endif
     }
 }
 
@@ -269,6 +286,10 @@ keymaster_error_t JavacardSecureElement::getP1(uint8_t* p1) {
 #ifdef NXP_EXTNS
 void JavacardSecureElement::setOperationState(CryptoOperationState state) {
     transport_->setCryptoOperationState(state);
+}
+void JavacardSecureElement::cacheModuleHash(const vector<KeyParameter>& keyParams) {
+    LOG(ERROR) << "cacheModuleHash";
+    moduleHash = keyParams;
 }
 #endif
 }  // namespace keymint::javacard

@@ -137,6 +137,7 @@ class JavacardSecureElement {
     void setDeleteAllKeysPending();
 #ifdef NXP_EXTNS
     void setOperationState(CryptoOperationState state);
+    void cacheModuleHash(const vector<KeyParameter>& keyParams);
 #endif
     inline uint16_t getApduStatus(std::vector<uint8_t>& inputData) {
         // Last two bytes are the status SW0SW1
@@ -154,6 +155,9 @@ class JavacardSecureElement {
         const std::vector<uint8_t>& command);
     keymaster_error_t getP1(uint8_t* p1);
 
+#ifdef NXP_EXTNS
+    vector<KeyParameter> moduleHash;
+#endif
     KmVersion version_;
     shared_ptr<ITransport> transport_;
     shared_ptr<ITransport> seHalTransport;

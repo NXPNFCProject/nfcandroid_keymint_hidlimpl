@@ -478,11 +478,19 @@ binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, 
 
 ScopedAStatus
 JavacardKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& keyParams) {
+    LOG(INFO) << "JavacardKeyMint::setAdditionalAttestationInfo Enter";
     if (!keyParams.empty()) {
         cppbor::Array request;
         cbor_.addKeyparameters(request, keyParams);
         auto [item, err] =
-            card_->sendRequest(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO, request);
+            card_->sendRequest(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO, request.encode());
+#ifdef NXP_EXTNS
+        if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED) {
+            LOG(ERROR)
+                << "Error: SECURE_HW_COOMMUNICATION_FAILED for setAdditionalAttestationInfo.";
+            card_->cacheModuleHash(keyParams);
+        }
+#endif
         if (err != KM_ERROR_OK) {
             LOG(ERROR) << "Error in sending in setAdditionalAttestationInfo.";
             return km_utils::kmError2ScopedAStatus(err);
