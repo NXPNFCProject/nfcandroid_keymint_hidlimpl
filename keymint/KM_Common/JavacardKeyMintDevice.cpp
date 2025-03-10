@@ -398,9 +398,9 @@ ScopedAStatus JavacardKeyMintDevice::getRootOfTrustChallenge(std::array<uint8_t,
         return km_utils::kmError2ScopedAStatus(err);
     }
     auto optChallenge = cbor_.getByteArrayVec(item, 1);
-    if (!optChallenge) {
-        LOG(ERROR) << "Error in sending in upgradeKey.";
-        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
+    if (!optChallenge || optChallenge->size() != 16) {
+        LOG(ERROR) << "Invalid challenge size received";
+        return km_utils::kmError2ScopedAStatus(KM_ERROR_INVALID_ARGUMENT);
     }
     std::move(optChallenge->begin(), optChallenge->begin() + 16, challenge->begin());
     return ScopedAStatus::ok();
@@ -446,8 +446,10 @@ JavacardKeyMintDevice::parseWrappedKey(const vector<uint8_t>& wrappedKeyData,
     KeymasterBlob kmWrappedKeyDescription;
 
     size_t keyDataLen = wrappedKeyData.size();
-    uint8_t* keyData = dup_buffer(wrappedKeyData.data(), keyDataLen);
-    keymaster_key_blob_t keyMaterial = {keyData, keyDataLen};
+
+    std::unique_ptr<uint8_t[]> keyData(dup_buffer(wrappedKeyData.data(), keyDataLen));
+    keymaster_key_blob_t keyMaterial = {keyData.get(), keyDataLen};
+
     keymaster_error_t error =
         parse_wrapped_key(KeymasterKeyBlob(keyMaterial), &kmIv, &kmTransitKey, &kmSecureKey, &kmTag,
                           &authSet, &kmKeyFormat, &kmWrappedKeyDescription);
