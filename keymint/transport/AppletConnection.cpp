@@ -211,7 +211,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
     SignalHandler::getInstance()->blockSignals();
     std::vector<uint8_t> response;
     mSecureElement->transmit(cmd, &response);
-    output = response;
+    output = std::move(response);
     // un-block signal delivery
     SignalHandler::getInstance()->unblockSignals();
     return true;
