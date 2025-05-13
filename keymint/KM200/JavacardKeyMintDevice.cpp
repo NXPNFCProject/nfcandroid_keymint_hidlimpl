@@ -29,7 +29,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022-2023 NXP
+ *  Copyright 2022-2023,2025 NXP
  *
  ******************************************************************************/
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
@@ -63,7 +63,7 @@ using ::keymint::javacard::Instruction;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 1;
-    info->keyMintAuthorName = "Google";
+    info->keyMintAuthorName = "NXP";
     info->keyMintName = "JavacardKeymintDevice";
     info->securityLevel = securitylevel_;
     info->timestampTokenRequired = true;

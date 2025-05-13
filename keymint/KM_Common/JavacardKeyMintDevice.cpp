@@ -68,7 +68,7 @@ using std::string;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 2;
-    info->keyMintAuthorName = "Google";
+    info->keyMintAuthorName = "NXP";
     info->keyMintName = "JavacardKeymintDevice";
     info->securityLevel = securitylevel_;
     info->timestampTokenRequired = true;
