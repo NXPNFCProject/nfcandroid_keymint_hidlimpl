@@ -46,7 +46,6 @@
 
 #include <AppletConnection.h>
 #include <EseTransportUtils.h>
-#include <SignalHandler.h>
 
 using aidl::android::hardware::secure_element::BnSecureElementCallback;
 using aidl::android::hardware::secure_element::ISecureElement;
@@ -92,10 +91,6 @@ AppletConnection::AppletConnection(const std::vector<uint8_t>& aid)
 }
 
 bool AppletConnection::connectToSEService() {
-    if (!SignalHandler::getInstance()->isHandlerRegistered()) {
-        LOG(DEBUG) << "register signal handler";
-        SignalHandler::getInstance()->installHandler(this);
-    }
     if (mSecureElement != nullptr && mSecureElementCallback->isClientConnected()) {
         LOG(INFO) <<"Already connected";
         return true;
@@ -207,13 +202,9 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
             return false;
         }
     }
-    // block any fatal signal delivery
-    SignalHandler::getInstance()->blockSignals();
     std::vector<uint8_t> response;
     mSecureElement->transmit(cmd, &response);
     output = std::move(response);
-    // un-block signal delivery
-    SignalHandler::getInstance()->unblockSignals();
     return true;
 }
 
