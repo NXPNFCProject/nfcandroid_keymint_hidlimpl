@@ -1,6 +1,6 @@
 /*
  **
- ** Copyright 2020, The Android Open Source Project
+ ** Copyright 2020, 2025 The Android Open Source Project
  **
  ** Licensed under the Apache License, Version 2.0 (the "License");
  ** you may not use this file except in compliance with the License.
@@ -499,7 +499,7 @@ CborConverter::getErrorCode(const std::unique_ptr<cppbor::Item>& item, const uin
     if (!optErrorVal) {
         return std::nullopt;
     }
-    return static_cast<keymaster_error_t>(0 - optErrorVal.value());
+    return static_cast<keymaster_error_t>(-static_cast<int64_t>(optErrorVal.value()));
 }
 
 std::optional<uint64_t> CborConverter::getUint64(const unique_ptr<Item>& item) {
