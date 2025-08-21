@@ -72,7 +72,12 @@ public:
      * broken.
      */
     bool isConnected() override;
-private:
+    /**
+     * Sets Applet Aid to be selected next
+     */
+    bool setAppletAid(const vector<uint8_t>& aid);
+
+  private:
     AppletConnection mAppletConnection;
     IntervalTimer mTimer;
 

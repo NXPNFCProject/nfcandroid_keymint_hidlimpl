@@ -86,7 +86,12 @@ public:
    */
   int getSessionTimeout();
 
- private:
+  /**
+   * set applet aid to be selected next
+   */
+  bool setAppletAid(const std::vector<uint8_t>& aid);
+
+private:
   /**
    * Select applet with given P2 parameter
    */
@@ -98,7 +103,7 @@ public:
   std::shared_ptr<SecureElementCallback> mSecureElementCallback;
   ::ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
   static void BinderDiedCallback(void* cookie);
-  std::vector<uint8_t> kAppletAID;
+  std::vector<uint8_t> mSelectableAid;
   int8_t mOpenChannel = -1;
   SBAccessController& mSBAccessController;
 };

@@ -57,7 +57,6 @@ using ndk::SpAIBinder;
 
 namespace keymint::javacard {
 
-static bool isStrongBox = false; // true when linked with StrongBox HAL process
 const std::vector<uint8_t> kStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
 constexpr const char eseHalServiceName[] = "android.hardware.secure_element.ISecureElement/eSE1";
 
@@ -80,12 +79,15 @@ void AppletConnection::BinderDiedCallback(void* cookie) {
     thiz->mSecureElementCallback->onStateChange(false, "SE HAL died");
     thiz->mSecureElement = nullptr;
 }
-
-AppletConnection::AppletConnection(const std::vector<uint8_t>& aid)
-    : kAppletAID(aid), mSBAccessController(SBAccessController::getInstance()) {
-    if (kAppletAID == kStrongBoxAppletAID) {
-        isStrongBox = true;
+bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
+    if (current_aid.size() >= kStrongBoxAppletAID.size() &&
+        std::equal(kStrongBoxAppletAID.begin(), kStrongBoxAppletAID.end(), current_aid.begin())) {
+        return true;
     }
+    return false;
+}
+AppletConnection::AppletConnection(const std::vector<uint8_t>& aid)
+    : mSelectableAid(aid), mSBAccessController(SBAccessController::getInstance()) {
     mDeathRecipient =
         ::ndk::ScopedAIBinder_DeathRecipient(AIBinder_DeathRecipient_new(BinderDiedCallback));
 }
@@ -137,11 +139,17 @@ void prepareServiceSpecificErrorRepsponse(std::vector<uint8_t>& resp, int32_t er
             resp.push_back(0xFF);
     }
 }
+
+bool AppletConnection::setAppletAid(const std::vector<uint8_t>& aid) {
+    mSelectableAid = aid;
+    return true;
+}
+
 bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   bool stat = false;
   resp.clear();
   LogicalChannelResponse logical_channel_response;
-  auto status = mSecureElement->openLogicalChannel(kAppletAID, p2, &logical_channel_response);
+  auto status = mSecureElement->openLogicalChannel(mSelectableAid, p2, &logical_channel_response);
   if (status.isOk()) {
       mOpenChannel = logical_channel_response.channelNumber;
       resp = logical_channel_response.selectResponse;
@@ -149,7 +157,7 @@ bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   } else {
       mOpenChannel = -1;
       resp = logical_channel_response.selectResponse;
-      LOG(ERROR) << "openLogicalChannel: Failed ";
+      LOG(ERROR) << "openLogicalChannel: Failed with resp: " << resp;
       // AIDL Hal returns empty response for failure case
       // so prepare response based on service specific errorcode
       prepareServiceSpecificErrorRepsponse(resp, status.getServiceSpecificError());
@@ -168,7 +176,7 @@ bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
     LOG(INFO) << "channel Already opened";
     return true;
   }
-  if (isStrongBox) {
+  if (isStrongBoxAID(mSelectableAid)) {
       if (!mSBAccessController.isSelectAllowed()) {
           prepareErrorRepsponse(resp);
           return false;
@@ -193,7 +201,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
     LOGD_OMAPI("Channel number: " << static_cast<int>(mOpenChannel));
 
     if (mSecureElement == nullptr) return false;
-    if (isStrongBox) {
+    if (isStrongBoxAID(mSelectableAid)) {
         if (!mSBAccessController.isOperationAllowed(CommandApdu[APDU_INS_OFFSET])) {
             std::vector<uint8_t> ins;
             ins.push_back(CommandApdu[APDU_INS_OFFSET]);

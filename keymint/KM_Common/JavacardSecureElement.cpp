@@ -177,6 +177,22 @@ keymaster_error_t JavacardSecureElement::sendData(const std::shared_ptr<ITranspo
         LOG(ERROR) << "Error in sending C-APDU";
         return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
+    // Hal2Hal: Response 0xFFFF indicates Applet select failure
+    // Hal2Omapi: Considers Applet selection failure as 0x6A82
+    if (getApduStatus(response) == 0xFFFF || getApduStatus(response) == 0x6A82) {
+        LOG(WARNING) << "Try with Full AID";
+        std::vector<uint8_t> strongBoxFullAid = {0xA0, 0x00, 0x00, 0x00, 0x62, 0x54, 0x53,
+                                                 0x00, 0x00, 0x00, 0x01, 0x00, 0x22};
+        transport->setAppletAid(strongBoxFullAid);
+        if (!transport->sendData(apdu, response)) {
+            LOG(ERROR) << "Full AID: Error in sending C-APDU. Revert to partial AID";
+            transport->setAppletAid(gStrongBoxAppletAID);
+            if (response.size() < 2) {
+                LOG(ERROR) << "Full AID: KM_ERROR_SECURE_HW_COMMUNICATION_FAILED";
+                return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
+            }
+        }
+    }
     // Response size should be greater than 2. Cbor output data followed by two
     // bytes of APDU status.
     if (getApduStatus(response) != APDU_RESP_STATUS_OK) {

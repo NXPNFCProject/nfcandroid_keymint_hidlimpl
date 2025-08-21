@@ -495,7 +495,7 @@ JavacardKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& 
             LOG(ERROR)
                 << "Error: SECURE_HW_COOMMUNICATION_FAILED for setAdditionalAttestationInfo.";
             card_->cacheModuleHash(keyParams);
-            error = KM_ERROR_OK;  // Mark cmd successful
+            err = KM_ERROR_OK;  // Mark cmd successful
         }
 #endif  // INIT_USING_SEHAL_TRANSPORT
 #else

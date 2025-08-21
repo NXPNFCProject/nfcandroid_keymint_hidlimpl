@@ -103,4 +103,8 @@ bool HalToHalTransport::closeConnection() {
 bool HalToHalTransport::isConnected() {
     return mAppletConnection.isServiceConnected();
 }
+
+bool HalToHalTransport::setAppletAid(const std::vector<uint8_t>& aid) {
+    return mAppletConnection.setAppletAid(aid);
+}
 } // namespace keymint::javacard
