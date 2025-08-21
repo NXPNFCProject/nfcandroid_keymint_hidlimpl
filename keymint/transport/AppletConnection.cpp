@@ -219,21 +219,19 @@ bool AppletConnection::close() {
         return false;
     }
     if(mOpenChannel < 0){
-       LOG(INFO) << "Channel is already closed";
-       return true;
+        LOG(INFO) << "Channel is already closed";
+    } else {
+        auto status = mSecureElement->closeChannel(mOpenChannel);
+        if (!status.isOk()) {
+            LOG(ERROR) << "closeChannel failed";
+        } else {
+            LOG(INFO) << "Channel closed";
+        }
     }
-    auto status = mSecureElement->closeChannel(mOpenChannel);
-    if (!status.isOk()) {
-        /*
-         * reason could be SE reset or HAL deinit triggered from other client
-         * which anyway closes all the opened channels
-         */
-        LOG(ERROR) << "closeChannel failed";
-        mOpenChannel = -1;
-        return true;
-    }
-    LOG(INFO) << "Channel closed";
     mOpenChannel = -1;
+    // Release eSEHAL ownership
+    mSecureElement->reset();
+    mSecureElement = nullptr;
     return true;
 }
 
