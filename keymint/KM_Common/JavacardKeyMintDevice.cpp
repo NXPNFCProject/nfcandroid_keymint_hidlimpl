@@ -489,6 +489,7 @@ JavacardKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& 
 #ifdef INIT_USING_SEHAL_TRANSPORT
             card_->sendRequestSeHal(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO,
                                     request.encode());
+        card_->closeSEHal();
 #else
             card_->sendRequest(Instruction::INS_SET_ADDITIONAL_ATTESTATION_INFO, request.encode());
         if (err == KM_ERROR_SECURE_HW_COMMUNICATION_FAILED) {
