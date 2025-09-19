@@ -91,8 +91,11 @@ class JavacardKeyMintOperation : public BnKeyMintOperation {
     explicit JavacardKeyMintOperation(keymaster_operation_handle_t opHandle,
                                       BufferingMode bufferingMode, uint16_t macLength,
                                       shared_ptr<JavacardSecureElement> card)
-        : buffer_(vector<uint8_t>()), bufferingMode_(bufferingMode), macLength_(macLength),
-          card_(std::move(card)), opHandle_(opHandle) {
+        : buffer_(vector<uint8_t>()),
+          bufferingMode_(bufferingMode),
+          macLength_(macLength),
+          card_(card),
+          opHandle_(opHandle) {
 #ifdef NXP_EXTNS
             card_->setOperationState(::keymint::javacard::CryptoOperationState::STARTED);
 #endif

@@ -33,14 +33,11 @@
 *
 ******************************************************************************/
 #pragma once
-#include <keymaster/km_version.h>
+
 #include <ITransport.h>
 #include "CborConverter.h"
 
 #define APDU_CLS 0x80
-//#define APDU_P1 0x50
-#define APDU_KEYMINT_3_P1 0x60
-#define APDU_KEYMINT_4_P1 0x70
 #define APDU_P2 0x00
 #define APDU_RESP_STATUS_OK 0x9000
 
@@ -49,7 +46,6 @@
 #define KEYMINT_VENDOR_CMD_APDU_START 0xD0
 
 namespace keymint::javacard {
-using keymaster::KmVersion;
 using std::shared_ptr;
 using std::vector;
 
@@ -106,8 +102,9 @@ enum CryptoOperationState { STARTED = 0, FINISHED };
 
 class JavacardSecureElement {
   public:
-    explicit JavacardSecureElement(KmVersion version, shared_ptr<ITransport> transport)
-        : version_(version), transport_(std::move(transport)),
+    explicit JavacardSecureElement(uint8_t p1, shared_ptr<ITransport> transport)
+        : p1_(p1),
+          transport_(std::move(transport)),
           isEarlyBootEndedPending(false),
           isDeleteAllKeysPending(false),
           isCardInitPending(true) {
@@ -158,7 +155,7 @@ class JavacardSecureElement {
 #ifdef NXP_EXTNS
     vector<KeyParameter> moduleHash;
 #endif
-    KmVersion version_;
+    uint8_t p1_;
     shared_ptr<ITransport> transport_;
     shared_ptr<ITransport> seHalTransport;
     bool isEarlyBootEndedPending;

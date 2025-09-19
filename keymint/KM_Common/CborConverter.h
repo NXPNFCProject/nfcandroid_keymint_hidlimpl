@@ -61,10 +61,6 @@ class CborConverter {
     std::tuple<std::unique_ptr<Item>, keymaster_error_t>
     decodeData(const std::vector<uint8_t>& response);
 
-    std::optional<uint64_t> getUint64(const unique_ptr<Item>& item);
-
-    std::optional<uint64_t> getUint64(const unique_ptr<Item>& item, const uint32_t pos);
-
     std::optional<SharedSecretParameters>
     getSharedSecretParameters(const std::unique_ptr<Item>& item, const uint32_t pos);
 
@@ -95,8 +91,8 @@ class CborConverter {
     std::optional<vector<Certificate>> getCertificateChain(const std::unique_ptr<Item>& item,
                                                            const uint32_t pos);
 
-     std::optional<vector<vector<uint8_t>>> getMultiByteArray(const unique_ptr<Item>& item,
-                                                              const uint32_t pos);
+    std::optional<vector<vector<uint8_t>>> getMultiByteArray(const unique_ptr<Item>& item,
+                                                             const uint32_t pos);
 
     bool addTimeStampToken(Array& array, const TimeStampToken& token);
 
@@ -104,15 +100,12 @@ class CborConverter {
 
     std::optional<Array> getArrayItem(const std::unique_ptr<Item>& item, const uint32_t pos);
 
-    std::optional<keymaster_error_t> getErrorCode(const std::unique_ptr<Item>& item,
-                                                  const uint32_t pos);
+    // static methods
+    static std::optional<uint64_t> getUint64(const unique_ptr<Item>& item);
+
+    static std::optional<uint64_t> getUint64AtPos(const unique_ptr<Item>& item, const uint32_t pos);
 
   private:
-    /**
-     * Get the type of the Item pointer.
-     */
-    inline MajorType getType(const unique_ptr<Item>& item) { return item.get()->type(); }
-
     /**
      * Construct Keyparameter structure from the pair of key and value. If TagType is  ENUM_REP the
      * value contains binary string. If TagType is UINT_REP or ULONG_REP the value contains Array of
@@ -120,23 +113,6 @@ class CborConverter {
      */
     std::optional<std::vector<KeyParameter>> getKeyParameter(
         const std::pair<const std::unique_ptr<Item>&, const std::unique_ptr<Item>&> pair);
-
-    /**
-     * Get the sub item pointer from the root item pointer at the given position.
-     */
-    inline std::optional<unique_ptr<Item>> getItemAtPos(const unique_ptr<Item>& item,
-                                                        const uint32_t pos) {
-        Array* arr = nullptr;
-
-        if (MajorType::ARRAY != getType(item)) {
-            return std::nullopt;
-        }
-        arr = const_cast<Array*>(item.get()->asArray());
-        if (arr->size() < (pos + 1)) {
-            return std::nullopt;
-        }
-        return std::move((*arr)[pos]);
-    }
 };
 
 }  // namespace keymint::javacard

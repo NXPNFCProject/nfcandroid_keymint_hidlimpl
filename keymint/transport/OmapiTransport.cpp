@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2024 NXP
+ ** Copyright 2022-2025 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -407,7 +407,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
       if (isSBAppletAID && !mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
         LOG(ERROR) << "Select / Command INS not allowed";
-        prepareErrorRepsponse(transmitResponse);
+        prepareErrorResponse(transmitResponse);
         return false;
       }
 
@@ -420,7 +420,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       }
       if (channel == nullptr) {
         LOG(ERROR) << "Could not open channel null";
-        prepareErrorRepsponse(transmitResponse);
+        prepareErrorResponse(transmitResponse);
         return false;
       }
 
@@ -449,7 +449,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       res = channel->transmit(apdu, &transmitResponse);
     } else {
       LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
-      prepareErrorRepsponse(transmitResponse);
+      prepareErrorResponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
@@ -485,10 +485,10 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     return true;
 }
 
-void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
-        resp.clear();
-        resp.push_back(0xFF);
-        resp.push_back(0xFF);
+void OmapiTransport::prepareErrorResponse(std::vector<uint8_t>& resp) {
+    resp.clear();
+    resp.push_back(0xFF);
+    resp.push_back(0xFF);
 }
 
 void OmapiTransport::closeChannel() {

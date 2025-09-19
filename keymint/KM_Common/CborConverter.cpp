@@ -36,7 +36,9 @@
 
 #include "CborConverter.h"
 
+#include <algorithm>
 #include <map>
+#include <ranges>
 #include <string>
 
 #include <android-base/logging.h>
@@ -86,9 +88,41 @@ std::optional<uint32_t> aidlEnumParam2Uint32(const KeyParameter& param) {
     case KM_TAG_BLOB_USAGE_REQUIREMENTS:
     case KM_TAG_KDF:
     default:
-        LOG(FATAL) << "Unknown or unused enum tag: Something is broken";
+        CHECK(false) << "Unknown or unused enum tag: Something is broken";
         return std::nullopt;
     }
+}
+
+/**
+ * Get the type of the Item pointer.
+ */
+MajorType getType(const unique_ptr<Item>& item) {
+    return item.get()->type();
+}
+
+/**
+ * Get the sub item pointer from the root item pointer at the given position.
+ */
+std::optional<unique_ptr<Item>> getItemAtPos(const unique_ptr<Item>& item, const uint32_t pos) {
+    Array* arr = nullptr;
+
+    if (MajorType::ARRAY != getType(item)) {
+        return std::nullopt;
+    }
+    arr = const_cast<Array*>(item.get()->asArray());
+    if (arr->size() < (pos + 1)) {
+        return std::nullopt;
+    }
+    return std::move((*arr)[pos]);
+}
+
+std::optional<keymaster_error_t> getErrorCode(const std::unique_ptr<cppbor::Item>& item,
+                                              const uint32_t pos) {
+    auto optErrorVal = CborConverter::getUint64AtPos(item, pos);
+    if (!optErrorVal) {
+        return std::nullopt;
+    }
+    return static_cast<keymaster_error_t>(0 - optErrorVal.value());
 }
 
 }  // namespace
@@ -235,12 +269,9 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         if (bstr == nullptr) {
             return std::nullopt;
         }
-        for (auto bchar : bstr->value()) {
-            keymaster_key_param_t keyParam;
-            keyParam.tag = key;
-            keyParam.enumerated = bchar;
-            keyParams.push_back(kmParam2Aidl(keyParam));
-        }
+        std::transform(
+            bstr->value().begin(), bstr->value().end(), std::back_inserter(keyParams),
+            [key](auto bchar) { return kmParam2Aidl({.tag = key, .enumerated = bchar}); });
         return keyParams;
     }
     case KM_ENUM: {
@@ -277,15 +308,10 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         /* UINT_REP contains values encoded in a Array */
         Array* array = const_cast<Array*>(pair.second.get()->asArray());
         if (array == nullptr) return std::nullopt;
-        for (int i = 0; i < array->size(); i++) {
-            keymaster_key_param_t keyParam;
-            keyParam.tag = key;
-            const std::unique_ptr<Item>& item = array->get(i);
-            if (!(optValue = getUint64(item))) {
-                return std::nullopt;
-            }
-            keyParam.integer = static_cast<uint32_t>(optValue.value());
-            keyParams.push_back(kmParam2Aidl(keyParam));
+        for (auto optValue : *array | std::views::transform(getUint64)) {
+            if (!optValue) return std::nullopt;
+            uint32_t value = optValue.value();
+            keyParams.push_back(kmParam2Aidl({.tag = key, .integer = value}));
         }
         return keyParams;
     }
@@ -293,15 +319,10 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         /* ULONG_REP contains values encoded in a Array */
         Array* array = const_cast<Array*>(pair.second.get()->asArray());
         if (array == nullptr) return std::nullopt;
-        for (int i = 0; i < array->size(); i++) {
-            keymaster_key_param_t keyParam;
-            keyParam.tag = key;
-            const std::unique_ptr<Item>& item = array->get(i);
-            if (!(optValue = getUint64(item))) {
-                return std::nullopt;
-            }
-            keyParam.long_integer = optValue.value();
-            keyParams.push_back(kmParam2Aidl(keyParam));
+        for (auto optValue : *array | std::views::transform(getUint64)) {
+            if (!optValue) return std::nullopt;
+            uint64_t value = optValue.value();
+            keyParams.push_back(kmParam2Aidl({.tag = key, .long_integer = value}));
         }
         return keyParams;
     }
@@ -321,8 +342,7 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         if (!(optValue = getUint64(pair.second))) {
             return std::nullopt;
         }
-        // If a tag with this type is present, the value is true.  If absent,
-        // false.
+        // If a tag with this type is present, the value is true.  If absent, false.
         keyParam.boolean = true;
         keyParams.push_back(kmParam2Aidl(keyParam));
         return keyParams;
@@ -352,7 +372,7 @@ CborConverter::getCertificateChain(const std::unique_ptr<Item>& item, const uint
     if (!arrayItem || (MajorType::ARRAY != getType(arrayItem.value()))) return std::nullopt;
 
     const Array* arr = arrayItem.value().get()->asArray();
-    for (int i = 0; i < arr->size(); i++) {
+    for (size_t i = 0; i < arr->size(); i++) {
         Certificate cert;
         auto optTemp = getByteArrayVec(arrayItem.value(), i);
         if (!optTemp) return std::nullopt;
@@ -447,8 +467,8 @@ std::optional<TimeStampToken> CborConverter::getTimeStampToken(const unique_ptr<
                                                                const uint32_t pos) {
     TimeStampToken token;
     // {challenge, timestamp, Mac}
-    auto optChallenge = getUint64(item, pos);
-    auto optTimestampMillis = getUint64(item, pos + 1);
+    auto optChallenge = getUint64AtPos(item, pos);
+    auto optTimestampMillis = getUint64AtPos(item, pos + 1);
     auto optTemp = getByteArrayVec(item, pos + 2);
     if (!optChallenge || !optTimestampMillis || !optTemp) {
         return std::nullopt;
@@ -488,7 +508,7 @@ std::optional<vector<KeyParameter>> CborConverter::getKeyParameters(const unique
     if (!mapItem || (MajorType::MAP != getType(mapItem.value()))) return std::nullopt;
     const Map* map = mapItem.value().get()->asMap();
     size_t mapSize = map->size();
-    for (int i = 0; i < mapSize; i++) {
+    for (size_t i = 0; i < mapSize; i++) {
         auto optKeyParams = getKeyParameter((*map)[i]);
         if (optKeyParams) {
             params.insert(params.end(), optKeyParams->begin(), optKeyParams->end());
@@ -512,15 +532,6 @@ CborConverter::decodeData(const std::vector<uint8_t>& response) {
     return {std::move(item), optErrorCode.value()};
 }
 
-std::optional<keymaster_error_t>
-CborConverter::getErrorCode(const std::unique_ptr<cppbor::Item>& item, const uint32_t pos) {
-    auto optErrorVal = getUint64(item, pos);
-    if (!optErrorVal) {
-        return std::nullopt;
-    }
-    return static_cast<keymaster_error_t>(-static_cast<int64_t>(optErrorVal.value()));
-}
-
 std::optional<uint64_t> CborConverter::getUint64(const unique_ptr<Item>& item) {
     if ((item == nullptr) || (MajorType::UINT != getType(item))) {
         return std::nullopt;
@@ -529,7 +540,8 @@ std::optional<uint64_t> CborConverter::getUint64(const unique_ptr<Item>& item) {
     return uintVal->unsignedValue();
 }
 
-std::optional<uint64_t> CborConverter::getUint64(const unique_ptr<Item>& item, const uint32_t pos) {
+std::optional<uint64_t> CborConverter::getUint64AtPos(const unique_ptr<Item>& item,
+                                                      const uint32_t pos) {
     auto intItem = getItemAtPos(item, pos);
     if (!intItem) {
         return std::nullopt;

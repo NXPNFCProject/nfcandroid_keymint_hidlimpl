@@ -36,17 +36,14 @@
 #pragma once
 
 #include <aidl/android/hardware/security/keymint/BnKeyMintDevice.h>
-#include <aidl/android/hardware/security/keymint/BnKeyMintOperation.h>
 #include <aidl/android/hardware/security/keymint/HardwareAuthToken.h>
-#include <aidl/android/hardware/security/sharedsecret/SharedSecretParameters.h>
 
-#include "CborConverter.h"
+#include <KeyMintUtils.h>
+
 #include "JavacardKeyMintDevice.h"
-#include "JavacardSecureElement.h"
 
 namespace aidl::android::hardware::security::keymint {
 using cppbor::Item;
-using ::keymint::javacard::CborConverter;
 using ::keymint::javacard::JavacardSecureElement;
 using ndk::ScopedAStatus;
 using secureclock::TimeStampToken;
@@ -59,70 +56,97 @@ class JavacardKeyMint4Device : public BnKeyMintDevice {
   public:
     explicit JavacardKeyMint4Device(shared_ptr<JavacardSecureElement> card,
                                     shared_ptr<::keymint::javacard::JavacardKeyMintDevice> device)
-        : securitylevel_(SecurityLevel::STRONGBOX), card_(card), device_(device) {}
+        : device_(device) {}
     virtual ~JavacardKeyMint4Device() {}
+    binder_status_t dump(int fd, const char** args, uint32_t num_args) {
+        return device_->dump(fd, args, num_args);
+    }
 
-    binder_status_t dump(int fd, const char** args, uint32_t num_args) override;
-    ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info) override;
-
-    ScopedAStatus addRngEntropy(const vector<uint8_t>& data) override;
+    ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info) {
+        return device_->getHardwareInfo(info);
+    }
 
     ScopedAStatus generateKey(const vector<KeyParameter>& keyParams,
                               const optional<AttestationKey>& attestationKey,
-                              KeyCreationResult* creationResult) override;
+                              KeyCreationResult* creationResult) {
+        return device_->generateKey(keyParams, attestationKey, creationResult);
+    }
+
+    ScopedAStatus addRngEntropy(const vector<uint8_t>& data) {
+        return device_->addRngEntropy(data);
+    }
 
     ScopedAStatus importKey(const vector<KeyParameter>& keyParams, KeyFormat keyFormat,
                             const vector<uint8_t>& keyData,
                             const optional<AttestationKey>& attestationKey,
-                            KeyCreationResult* creationResult) override;
+                            KeyCreationResult* creationResult) {
+        return device_->importKey(keyParams, keyFormat, keyData, attestationKey, creationResult);
+    }
 
     ScopedAStatus importWrappedKey(const vector<uint8_t>& wrappedKeyData,
                                    const vector<uint8_t>& wrappingKeyBlob,
                                    const vector<uint8_t>& maskingKey,
                                    const vector<KeyParameter>& unwrappingParams,
                                    int64_t passwordSid, int64_t biometricSid,
-                                   KeyCreationResult* creationResult) override;
+                                   KeyCreationResult* creationResult) {
+        return device_->importWrappedKey(wrappedKeyData, wrappingKeyBlob, maskingKey,
+                                         unwrappingParams, passwordSid, biometricSid,
+                                         creationResult);
+    }
 
     ScopedAStatus upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
-                             const vector<KeyParameter>& upgradeParams,
-                             vector<uint8_t>* keyBlob) override;
+                             const vector<KeyParameter>& upgradeParams, vector<uint8_t>* keyBlob) {
+        return device_->upgradeKey(keyBlobToUpgrade, upgradeParams, keyBlob);
+    }
 
-    ScopedAStatus deleteKey(const vector<uint8_t>& keyBlob) override;
-    ScopedAStatus deleteAllKeys() override;
-    ScopedAStatus destroyAttestationIds() override;
+    ScopedAStatus deleteKey(const vector<uint8_t>& keyBlob) { return device_->deleteKey(keyBlob); }
 
-    ScopedAStatus begin(KeyPurpose in_purpose, const std::vector<uint8_t>& in_keyBlob,
-                        const std::vector<KeyParameter>& in_params,
-                        const std::optional<HardwareAuthToken>& in_authToken,
-                        BeginResult* _aidl_return) override;
+    ScopedAStatus deleteAllKeys() { return device_->deleteAllKeys(); }
+
+    ScopedAStatus destroyAttestationIds() { return device_->destroyAttestationIds(); }
+
+    ScopedAStatus begin(KeyPurpose purpose, const std::vector<uint8_t>& keyBlob,
+                        const std::vector<KeyParameter>& params,
+                        const std::optional<HardwareAuthToken>& authToken, BeginResult* result) {
+        return device_->begin(purpose, keyBlob, params, authToken, result);
+    }
 
     ScopedAStatus deviceLocked(bool passwordOnly,
-                               const optional<TimeStampToken>& timestampToken) override;
+                               const std::optional<TimeStampToken>& timestampToken) {
+        return device_->deviceLocked(passwordOnly, timestampToken);
+    }
 
-    ScopedAStatus earlyBootEnded() override;
+    ScopedAStatus earlyBootEnded() { return device_->earlyBootEnded(); }
 
-    ScopedAStatus getKeyCharacteristics(const std::vector<uint8_t>& in_keyBlob,
-                                        const std::vector<uint8_t>& in_appId,
-                                        const std::vector<uint8_t>& in_appData,
-                                        std::vector<KeyCharacteristics>* _aidl_return) override;
+    ScopedAStatus getKeyCharacteristics(const std::vector<uint8_t>& keyBlob,
+                                        const std::vector<uint8_t>& appId,
+                                        const std::vector<uint8_t>& appData,
+                                        std::vector<KeyCharacteristics>* result) {
+        return device_->getKeyCharacteristics(keyBlob, appId, appData, result);
+    }
 
-    ScopedAStatus convertStorageKeyToEphemeral(const std::vector<uint8_t>& storageKeyBlob,
-                                               std::vector<uint8_t>* ephemeralKeyBlob) override;
+    ScopedAStatus convertStorageKeyToEphemeral(const std::vector<uint8_t>& /* storageKeyBlob */,
+                                               std::vector<uint8_t>* /* ephemeralKeyBlob */) {
+        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+    }
 
-    ScopedAStatus getRootOfTrustChallenge(array<uint8_t, 16>* challenge) override;
+    ScopedAStatus getRootOfTrustChallenge(array<uint8_t, 16>* challenge) {
+        return device_->getRootOfTrustChallenge(challenge);
+    }
 
-    ScopedAStatus getRootOfTrust(const array<uint8_t, 16>& challenge,
-                                 vector<uint8_t>* rootOfTrust) override;
+    ScopedAStatus getRootOfTrust(const array<uint8_t, 16>& /*challenge*/,
+                                 vector<uint8_t>* /*rootOfTrust*/) {
+        return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+    }
 
-    ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust) override;
+    ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust) {
+        return device_->sendRootOfTrust(rootOfTrust);
+    }
 
     ScopedAStatus setAdditionalAttestationInfo(const vector<KeyParameter>& keyParams) override;
 
   private:
-    const SecurityLevel securitylevel_;
-    const shared_ptr<JavacardSecureElement> card_;
     shared_ptr<::keymint::javacard::JavacardKeyMintDevice> device_;
-    CborConverter cbor_;
 };
 
 }  // namespace aidl::android::hardware::security::keymint

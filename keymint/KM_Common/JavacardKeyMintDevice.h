@@ -45,7 +45,6 @@
 namespace keymint::javacard {
 using aidl::android::hardware::security::keymint::AttestationKey;
 using aidl::android::hardware::security::keymint::BeginResult;
-using aidl::android::hardware::security::keymint::Certificate;
 using aidl::android::hardware::security::keymint::HardwareAuthToken;
 using aidl::android::hardware::security::keymint::KeyCharacteristics;
 using aidl::android::hardware::security::keymint::KeyCreationResult;
@@ -59,24 +58,16 @@ using aidl::android::hardware::security::sharedsecret::SharedSecretParameters;
 using cppbor::Item;
 using ::keymint::javacard::CborConverter;
 using ::keymint::javacard::JavacardSecureElement;
-using ndk::ScopedAStatus;
+using ::ndk::ScopedAStatus;
 using std::array;
 using std::optional;
 using std::shared_ptr;
 using std::vector;
 
-struct SEKeyMintBeginResult {
-    int64_t challenge;
-    std::vector<KeyParameter> params;
-    int32_t bufMode;
-    int64_t opHandle;
-    int32_t macLength;
-};
-
 class JavacardKeyMintDevice {
   public:
-    explicit JavacardKeyMintDevice(shared_ptr<JavacardSecureElement> card)
-        : securitylevel_(SecurityLevel::STRONGBOX), card_(std::move(card)) {}
+    explicit JavacardKeyMintDevice(shared_ptr<JavacardSecureElement> card, int version)
+        : securitylevel_(SecurityLevel::STRONGBOX), card_(std::move(card)), version_(version) {}
     virtual ~JavacardKeyMintDevice() {}
 
     // Methods from ::ndk::ICInterface follow.
@@ -103,20 +94,17 @@ class JavacardKeyMintDevice {
                                    KeyCreationResult* creationResult);
 
     ScopedAStatus upgradeKey(const vector<uint8_t>& keyBlobToUpgrade,
-                             const vector<KeyParameter>& upgradeParams,
-                             vector<uint8_t>* keyBlob);
+                             const vector<KeyParameter>& upgradeParams, vector<uint8_t>* keyBlob);
 
     ScopedAStatus deleteKey(const vector<uint8_t>& keyBlob);
     ScopedAStatus deleteAllKeys();
     ScopedAStatus destroyAttestationIds();
 
-    virtual ScopedAStatus begin(KeyPurpose in_purpose, const std::vector<uint8_t>& in_keyBlob,
-                                const std::vector<KeyParameter>& in_params,
-                                const std::optional<HardwareAuthToken>& in_authToken,
-                                SEKeyMintBeginResult* beginResult);
+    ScopedAStatus begin(KeyPurpose in_purpose, const std::vector<uint8_t>& in_keyBlob,
+                        const std::vector<KeyParameter>& in_params,
+                        const std::optional<HardwareAuthToken>& in_authToken, BeginResult* result);
 
-    ScopedAStatus deviceLocked(bool passwordOnly,
-                               const optional<TimeStampToken>& timestampToken);
+    ScopedAStatus deviceLocked(bool passwordOnly, const optional<TimeStampToken>& timestampToken);
 
     ScopedAStatus earlyBootEnded();
 
@@ -130,8 +118,7 @@ class JavacardKeyMintDevice {
 
     ScopedAStatus getRootOfTrustChallenge(array<uint8_t, 16>* challenge);
 
-    ScopedAStatus getRootOfTrust(const array<uint8_t, 16>& challenge,
-                                 vector<uint8_t>* rootOfTrust);
+    ScopedAStatus getRootOfTrust(const array<uint8_t, 16>& challenge, vector<uint8_t>* rootOfTrust);
 
     ScopedAStatus sendRootOfTrust(const vector<uint8_t>& rootOfTrust);
 
@@ -159,6 +146,7 @@ class JavacardKeyMintDevice {
 
     const SecurityLevel securitylevel_;
     const shared_ptr<JavacardSecureElement> card_;
+    int version_;
     CborConverter cbor_;
 };
 

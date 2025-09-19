@@ -116,11 +116,11 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::getHardwareInfo(RpcHar
     std::optional<string> optRpcAuthorName;
     std::optional<string> optUniqueId;
     std::optional<uint64_t> optMinSupportedKeysInCsr;
-    if (err != KM_ERROR_OK || !(optVersionNumber = cbor_.getUint64(item, 1)) ||
+    if (err != KM_ERROR_OK || !(optVersionNumber = CborConverter::getUint64AtPos(item, 1)) ||
         !(optRpcAuthorName = cbor_.getByteArrayStr(item, 2)) ||
-        !(optSupportedEekCurve = cbor_.getUint64(item, 3)) ||
+        !(optSupportedEekCurve = CborConverter::getUint64AtPos(item, 3)) ||
         !(optUniqueId = cbor_.getByteArrayStr(item, 4)) ||
-        !(optMinSupportedKeysInCsr = cbor_.getUint64(item, 5))) {
+        !(optMinSupportedKeysInCsr = CborConverter::getUint64AtPos(item, 5))) {
         LOG(ERROR) << "Error in response of getHardwareInfo.";
         LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
         return defaultHwInfo(info);
@@ -176,7 +176,7 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::beginSendData(
         return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
     deviceInfo->deviceInfo = std::move(optDecodedDeviceInfo.value());
-    auto optVersion = cbor_.getUint64(item, 2);
+    auto optVersion = CborConverter::getUint64AtPos(item, 2);
     if (!optVersion) {
         LOG(ERROR) << "Error in decoding version in beginSendData.";
         return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
@@ -217,8 +217,8 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::finishSendData(
     }
     auto optCEncryptProtectedHeader = cbor_.getByteArrayVec(item, 1);
     auto optSignature = cbor_.getByteArrayVec(item, 2);
-    auto optVersion = cbor_.getUint64(item, 3);
-    auto optRespFlag = cbor_.getUint64(item, 4);
+    auto optVersion = CborConverter::getUint64AtPos(item, 3);
+    auto optRespFlag = CborConverter::getUint64AtPos(item, 4);
     if (!optCEncryptProtectedHeader || !optSignature || !optVersion || !optRespFlag) {
         LOG(ERROR) << "Error in decoding response in finishSendData.";
         return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
@@ -241,7 +241,7 @@ JavacardRemotelyProvisionedComponentDevice::getDiceCertChain(std::vector<uint8_t
             return km_utils::kmError2ScopedAStatus(translateRkpErrorCode(err));
         }
         auto optDiceCertChain = cbor_.getByteArrayVec(item, 1);
-        auto optRespFlag = cbor_.getUint64(item, 2);
+        auto optRespFlag = CborConverter::getUint64AtPos(item, 2);
         if (!optDiceCertChain || !optRespFlag) {
             LOG(ERROR) << "Error in decoding response in getDiceCertChain.";
             return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
@@ -263,7 +263,7 @@ JavacardRemotelyProvisionedComponentDevice::getUdsCertsChain(std::vector<uint8_t
             return km_utils::kmError2ScopedAStatus(translateRkpErrorCode(err));
         }
         auto optUdsCertData = cbor_.getByteArrayVec(item, 1);
-        auto optRespFlag = cbor_.getUint64(item, 2);
+        auto optRespFlag = CborConverter::getUint64AtPos(item, 2);
         if (!optUdsCertData || !optRespFlag) {
             LOG(ERROR) << "Error in decoding og response in getUdsCertsChain.";
             return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);

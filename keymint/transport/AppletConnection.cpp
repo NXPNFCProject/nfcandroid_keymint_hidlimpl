@@ -79,6 +79,7 @@ void AppletConnection::BinderDiedCallback(void* cookie) {
     thiz->mSecureElementCallback->onStateChange(false, "SE HAL died");
     thiz->mSecureElement = nullptr;
 }
+
 bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
     if (current_aid.size() >= kStrongBoxAppletAID.size() &&
         std::equal(kStrongBoxAppletAID.begin(), kStrongBoxAppletAID.end(), current_aid.begin())) {
@@ -86,6 +87,7 @@ bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
     }
     return false;
 }
+
 AppletConnection::AppletConnection(const std::vector<uint8_t>& aid)
     : mSelectableAid(aid), mSBAccessController(SBAccessController::getInstance()) {
     mDeathRecipient =
@@ -164,10 +166,10 @@ bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   }
   return stat;
 }
-void prepareErrorRepsponse(std::vector<uint8_t>& resp){
-        resp.clear();
-        resp.push_back(0xFF);
-        resp.push_back(0xFF);
+void prepareErrorResponse(std::vector<uint8_t>& resp) {
+    resp.clear();
+    resp.push_back(0xFF);
+    resp.push_back(0xFF);
 }
 bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
   bool ret = false;
@@ -178,7 +180,7 @@ bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
   }
   if (isStrongBoxAID(mSelectableAid)) {
       if (!mSBAccessController.isSelectAllowed()) {
-          prepareErrorRepsponse(resp);
+          prepareErrorResponse(resp);
           return false;
       }
       do {
@@ -206,7 +208,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
             std::vector<uint8_t> ins;
             ins.push_back(CommandApdu[APDU_INS_OFFSET]);
             LOG(ERROR) << "command Ins:" << ins << " not allowed";
-            prepareErrorRepsponse(output);
+            prepareErrorResponse(output);
             return false;
         }
     }
@@ -236,6 +238,7 @@ bool AppletConnection::close() {
             LOG(INFO) << "Channel closed";
         }
     }
+
     mOpenChannel = -1;
     // Release eSEHAL ownership
     mSecureElement->reset();

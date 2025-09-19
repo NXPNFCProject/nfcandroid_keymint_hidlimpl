@@ -18,7 +18,7 @@
 #include <regex.h>
 
 #include <android-base/properties.h>
-#include <android-base/parseint.h>
+
 namespace keymint::javacard {
 
 namespace {
@@ -43,9 +43,7 @@ uint32_t match_to_uint32(const char* expression, const regmatch_t& match) {
 
     size_t len = match.rm_eo - match.rm_so;
     std::string s(expression + match.rm_so, len);
-    uint32_t val = 0;
-    android::base::ParseUint(s, &val);
-    return val;
+    return std::stoul(s);
 }
 
 std::string wait_and_get_property(const char* prop) {

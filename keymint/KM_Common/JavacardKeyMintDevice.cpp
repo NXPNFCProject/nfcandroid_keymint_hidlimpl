@@ -34,29 +34,22 @@
  ******************************************************************************/
 #include "JavacardKeyMintDevice.h"
 
-#include <regex.h>
-
-#include <algorithm>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <memunreachable/memunreachable.h>
-#include <string>
-#include <vector>
-
+#include <JavacardKeyMintOperation.h>
 #include <KeyMintUtils.h>
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <hardware/hw_auth_token.h>
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/wrapped_key.h>
+#include <memunreachable/memunreachable.h>
 
 #include "JavacardSharedSecret.h"
 
 namespace keymint::javacard {
+using aidl::android::hardware::security::keymint::BufferingMode;
+using aidl::android::hardware::security::keymint::JavacardKeyMintOperation;
 using aidl::android::hardware::security::keymint::Tag;
 namespace km_utils = ::aidl::android::hardware::security::keymint::km_utils;
-using cppbor::Bstr;
 using cppbor::EncodedItem;
 using cppbor::Uint;
 using ::keymaster::AuthorizationSet;
@@ -67,10 +60,10 @@ using ::keymint::javacard::Instruction;
 using std::string;
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
-    info->versionNumber = 2;
+    info->versionNumber = version_;
     info->keyMintAuthorName = "NXP";
     info->keyMintName = "JavacardKeymintDevice";
-    info->securityLevel = securitylevel_;
+    info->securityLevel = SecurityLevel::STRONGBOX;
     info->timestampTokenRequired = true;
     return ScopedAStatus::ok();
 }
@@ -82,11 +75,11 @@ ScopedAStatus JavacardKeyMintDevice::getHardwareInfo(KeyMintHardwareInfo* info) 
     std::optional<uint64_t> optSecLevel;
     std::optional<uint64_t> optVersion;
     std::optional<uint64_t> optTsRequired;
-    if (err != KM_ERROR_OK || !(optVersion = cbor_.getUint64(item, 1)) ||
-        !(optSecLevel = cbor_.getUint64(item, 2)) ||
+    if (err != KM_ERROR_OK || !(optVersion = CborConverter::getUint64AtPos(item, 1)) ||
+        !(optSecLevel = CborConverter::getUint64AtPos(item, 2)) ||
         !(optKeyMintName = cbor_.getByteArrayStr(item, 3)) ||
         !(optKeyMintAuthorName = cbor_.getByteArrayStr(item, 4)) ||
-        !(optTsRequired = cbor_.getUint64(item, 5))) {
+        !(optTsRequired = CborConverter::getUint64AtPos(item, 5))) {
         LOG(ERROR) << "Error in response of getHardwareInfo.";
         LOG(INFO) << "Returning defaultHwInfo in getHardwareInfo.";
         return defaultHwInfo(info);
@@ -312,7 +305,7 @@ ScopedAStatus JavacardKeyMintDevice::destroyAttestationIds() {
 ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector<uint8_t>& keyBlob,
                                            const std::vector<KeyParameter>& params,
                                            const std::optional<HardwareAuthToken>& authToken,
-                                           SEKeyMintBeginResult* beginResult) {
+                                           BeginResult* result) {
     card_->sendPendingEvents();
     cppbor::Array array;
     std::vector<uint8_t> response;
@@ -330,19 +323,19 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
     }
     // return the result
     auto keyParams = cbor_.getKeyParameters(item, 1);
-    auto optOpHandle = cbor_.getUint64(item, 2);
-    auto optBufMode = cbor_.getUint64(item, 3);
-    auto optMacLength = cbor_.getUint64(item, 4);
+    auto optOpHandle = CborConverter::getUint64AtPos(item, 2);
+    auto optBufMode = CborConverter::getUint64AtPos(item, 3);
+    auto optMacLength = CborConverter::getUint64AtPos(item, 4);
 
     if (!keyParams || !optOpHandle || !optBufMode || !optMacLength) {
         LOG(ERROR) << "Error in decoding the response in begin.";
         return km_utils::kmError2ScopedAStatus(KM_ERROR_UNKNOWN_ERROR);
     }
-    beginResult->params = std::move(keyParams.value());
-    beginResult->challenge = optOpHandle.value();
-    beginResult->bufMode = optBufMode.value();
-    beginResult->opHandle = optOpHandle.value();
-    beginResult->macLength = optMacLength.value();
+    result->params = std::move(keyParams.value());
+    result->challenge = optOpHandle.value();
+    result->operation = ndk::SharedRefBase::make<JavacardKeyMintOperation>(
+        static_cast<keymaster_operation_handle_t>(optOpHandle.value()),
+        static_cast<BufferingMode>(optBufMode.value()), optMacLength.value(), card_);
     return ScopedAStatus::ok();
 }
 
@@ -472,6 +465,7 @@ ScopedAStatus JavacardKeyMintDevice::convertStorageKeyToEphemeral(
     std::vector<uint8_t>* /* ephemeralKeyBlob */) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
+
 binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
     LOG(INFO) << "\n KeyMint-JavacardKeyMintDevice HAL MemoryLeak Info = \n"
               << ::android::GetUnreachableMemoryString(true, 10000).c_str();
@@ -510,5 +504,4 @@ JavacardKeyMintDevice::setAdditionalAttestationInfo(const vector<KeyParameter>& 
     }
     return ScopedAStatus::ok();
 }
-
 }  // namespace keymint::javacard

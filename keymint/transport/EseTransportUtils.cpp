@@ -1,5 +1,5 @@
 /*
- ** Copyright 2020-2021 NXP
+ ** Copyright 2020-2021, 2025 NXP
  **
  ** Licensed under the Apache License, Version 2.0 (the "License");
  ** you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  ** limitations under the License.
  **
  */
-#include <vector>
 #include <iomanip>
+#include <iostream>
+#include <vector>
 
 #include <EseTransportUtils.h>
 

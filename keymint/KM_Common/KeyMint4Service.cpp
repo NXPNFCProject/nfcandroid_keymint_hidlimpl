@@ -32,9 +32,8 @@
  ** Copyright 2020-2025 NXP
  **
  *********************************************************************************/
-#include <aidl/android/hardware/security/keymint/SecurityLevel.h>
-
 #define LOG_TAG "javacard.strongbox-service"
+
 #include <android-base/logging.h>
 #include <android-base/properties.h>
 #include <android/binder_manager.h>
@@ -52,9 +51,9 @@
 #else
 #include <SocketTransport.h>
 #endif
-#include "keymint_utils.h"
 #include <stdint.h>
 #include <cstdio>
+#include "keymint_utils.h"
 
 #define NXP_EN_SN110U 1
 #define NXP_EN_SN100U 1
@@ -71,7 +70,6 @@
 
 using aidl::android::hardware::security::keymint::JavacardKeyMint4Device;
 using aidl::android::hardware::security::keymint::JavacardRemotelyProvisionedComponentDevice;
-using aidl::android::hardware::security::keymint::SecurityLevel;
 using aidl::android::hardware::security::sharedsecret::JavacardSharedSecret;
 using keymaster::KmVersion;
 using keymint::javacard::getOsPatchlevel;
@@ -88,6 +86,11 @@ using keymint::javacard::SocketTransport;
 #endif
 
 const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+constexpr int kKeymintVersion = 0x0400;
+// Ensures HAL and applet version consistency. This is used as P1 byte in the APDU header. This
+// value is used by the applet to confirm that the KeyMint HAL is running a compatible version of
+// Keymint. If the versions do not match, the command is not executed.
+constexpr int kP1 = 0x70;
 
 template <typename T, class... Args> std::shared_ptr<T> addService(Args&&... args) {
     std::shared_ptr<T> ser = ndk::SharedRefBase::make<T>(std::forward<Args>(args)...);
@@ -122,19 +125,16 @@ int main() {
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(KmVersion::KEYMINT_4,
-            OmapiTransport::make(gStrongBoxAppletAID));
+        std::make_shared<JavacardSecureElement>(kP1, , OmapiTransport::make(gStrongBoxAppletAID));
 #elif defined HAL_TO_HAL_TRANSPORT
-    std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(KmVersion::KEYMINT_4,
-            std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
+    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
+        kP1, std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
 #else
-    std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(KmVersion::KEYMINT_4,
-            std::make_shared<SocketTransport>(gStrongBoxAppletAID));
+    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
+        kP1, std::make_shared<SocketTransport>(gStrongBoxAppletAID));
 #endif
     std::shared_ptr<::keymint::javacard::JavacardKeyMintDevice> device =
-        std::make_shared<::keymint::javacard::JavacardKeyMintDevice>(card);
+        std::make_shared<::keymint::javacard::JavacardKeyMintDevice>(card, kKeymintVersion);
     // Add Keymint Service
     addService<JavacardKeyMint4Device>(card, device);
     // Add Shared Secret Service

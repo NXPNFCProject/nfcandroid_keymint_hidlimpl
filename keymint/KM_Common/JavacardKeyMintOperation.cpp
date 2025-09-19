@@ -142,11 +142,9 @@ ScopedAStatus JavacardKeyMintOperation::abort() {
 void JavacardKeyMintOperation::blockAlign(DataView& view, uint16_t blockSize) {
     appendBufferedData(view);
     uint16_t offset = getDataViewOffset(view, blockSize);
-    if (view.buffer.empty() && view.data.empty()) {
-        offset = 0;
-    } else if (view.buffer.empty()) {
+    if (view.buffer.empty() && !view.data.empty()) {
         buffer_.insert(buffer_.end(), view.data.begin() + offset, view.data.end());
-    } else if (view.data.empty()) {
+    } else if (view.data.empty() && !view.buffer.empty()) {
         buffer_.insert(buffer_.end(), view.buffer.begin() + offset, view.buffer.end());
     } else {
         if (offset < view.buffer.size()) {
@@ -203,7 +201,7 @@ keymaster_error_t JavacardKeyMintOperation::bufferData(DataView& view) {
     case BufferingMode::EC_NO_DIGEST:
         if (buffer_.size() < EC_BUFFER_SIZE) {
             buffer_.insert(buffer_.end(), view.data.begin(), view.data.end());
-            // Truncate the buffered data if greater than allowed EC buffer size.
+            // Truncate the buffered data if greater then allowed EC buffer size.
             if (buffer_.size() > EC_BUFFER_SIZE) {
                 buffer_.erase(buffer_.begin() + EC_BUFFER_SIZE, buffer_.end());
             }
