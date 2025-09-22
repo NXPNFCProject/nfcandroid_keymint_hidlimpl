@@ -248,16 +248,16 @@ vector<uint8_t> JavacardKeyMintOperation::popNextChunk(DataView& view, uint32_t 
     vector<uint8_t> chunk;
     if (start < view.buffer.size()) {
         if (end < view.buffer.size()) {
-            chunk = {view.buffer.begin() + start, view.buffer.begin() + end};
+            chunk.assign(view.buffer.begin() + start, view.buffer.begin() + end);
         } else {
             end = end - view.buffer.size();
-            chunk = {view.buffer.begin() + start, view.buffer.end()};
+            chunk.assign(view.buffer.begin() + start, view.buffer.end());
             chunk.insert(chunk.end(), view.data.begin(), view.data.begin() + end);
         }
     } else {
         start = start - view.buffer.size();
         end = end - view.buffer.size();
-        chunk = {view.data.begin() + start, view.data.begin() + end};
+        chunk.assign(view.data.begin() + start, view.data.begin() + end);
     }
     view.start = view.start + chunk.size();
     view.length = view.length - chunk.size();
