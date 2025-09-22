@@ -87,8 +87,8 @@ cc_binary {
         "android.hardware.hardware_keystore.jc-strongbox-keymint4.nxp.xml",
     ],
     cflags: [
-        "-Wall",
-        "-Wextra",
+        "-DOMAPI_TRANSPORT",
+        "-DNXP_EXTNS",
     ],
 }
 

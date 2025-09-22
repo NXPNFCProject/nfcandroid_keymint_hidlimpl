@@ -38,7 +38,6 @@
 #include <android-base/properties.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
-#include <keymaster/km_version.h>
 
 #include "JavacardKeyMint4Device.h"
 #include "JavacardRemotelyProvisionedComponentDevice.h"
@@ -71,7 +70,6 @@
 using aidl::android::hardware::security::keymint::JavacardKeyMint4Device;
 using aidl::android::hardware::security::keymint::JavacardRemotelyProvisionedComponentDevice;
 using aidl::android::hardware::security::sharedsecret::JavacardSharedSecret;
-using keymaster::KmVersion;
 using keymint::javacard::getOsPatchlevel;
 using keymint::javacard::getOsVersion;
 using keymint::javacard::getVendorPatchlevel;
@@ -125,7 +123,7 @@ int main() {
     // Javacard Secure Element
 #if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(kP1, , OmapiTransport::make(gStrongBoxAppletAID));
+        std::make_shared<JavacardSecureElement>(kP1, OmapiTransport::make(gStrongBoxAppletAID));
 #elif defined HAL_TO_HAL_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
         kP1, std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
