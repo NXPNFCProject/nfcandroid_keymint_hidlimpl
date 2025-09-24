@@ -122,8 +122,8 @@ class JavacardKeyMintOperation : public BnKeyMintOperation {
   private:
     vector<uint8_t> popNextChunk(DataView& view, uint32_t chunkSize);
 
-    keymaster_error_t updateInChunks(DataView& data, HardwareAuthToken& authToken,
-                                     TimeStampToken& timestampToken, vector<uint8_t>* output);
+    keymaster_error_t updateInChunks(DataView& data, const HardwareAuthToken& authToken,
+                                     const TimeStampToken& timestampToken, vector<uint8_t>* output);
 
     keymaster_error_t sendFinish(const vector<uint8_t>& data, const vector<uint8_t>& signature,
                                  const HardwareAuthToken& authToken,
@@ -147,7 +147,7 @@ class JavacardKeyMintOperation : public BnKeyMintOperation {
                                                                      Array& request);
     keymaster_error_t bufferData(DataView& data);
     void blockAlign(DataView& data, uint16_t blockSize);
-    uint16_t getDataViewOffset(DataView& view, uint16_t blockSize);
+    uint16_t getDataViewOffset(const DataView& view, uint16_t blockSize);
 
     vector<uint8_t> buffer_;
     BufferingMode bufferingMode_;

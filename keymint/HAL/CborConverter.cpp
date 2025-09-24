@@ -308,9 +308,9 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         /* UINT_REP contains values encoded in a Array */
         Array* array = const_cast<Array*>(pair.second.get()->asArray());
         if (array == nullptr) return std::nullopt;
-        for (auto optValue : *array | std::views::transform(getUint64)) {
-            if (!optValue) return std::nullopt;
-            uint32_t value = optValue.value();
+        for (auto optParamValue : *array | std::views::transform(getUint64)) {
+            if (!optParamValue) return std::nullopt;
+            uint32_t value = optParamValue.value();
             keyParams.push_back(kmParam2Aidl({.tag = key, .integer = value}));
         }
         return keyParams;
@@ -319,9 +319,9 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         /* ULONG_REP contains values encoded in a Array */
         Array* array = const_cast<Array*>(pair.second.get()->asArray());
         if (array == nullptr) return std::nullopt;
-        for (auto optValue : *array | std::views::transform(getUint64)) {
-            if (!optValue) return std::nullopt;
-            uint64_t value = optValue.value();
+        for (auto optParamValue : *array | std::views::transform(getUint64)) {
+            if (!optParamValue) return std::nullopt;
+            uint64_t value = optParamValue.value();
             keyParams.push_back(kmParam2Aidl({.tag = key, .long_integer = value}));
         }
         return keyParams;

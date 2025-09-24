@@ -173,7 +173,6 @@ void prepareErrorResponse(std::vector<uint8_t>& resp) {
 }
 bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
   bool ret = false;
-  uint8_t retry = 0;
   if (isChannelOpen()) {
     LOG(INFO) << "channel Already opened";
     return true;
@@ -183,6 +182,7 @@ bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
           prepareErrorResponse(resp);
           return false;
       }
+      uint8_t retry = 0;
       do {
           if (selectApplet(resp, SELECT_P2_VALUE_0) || selectApplet(resp, SELECT_P2_VALUE_2)) {
               ret = true;

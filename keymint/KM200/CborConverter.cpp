@@ -30,7 +30,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023, 2025 NXP
  *
  ******************************************************************************/
 
@@ -299,14 +299,10 @@ bool CborConverter::getMultiBinaryArray(const unique_ptr<Item>& item, const uint
 bool CborConverter::getBinaryArray(const unique_ptr<Item>& item, const uint32_t pos,
                                    string& value) {
     vector<uint8_t> vec;
-    string str;
     if (!getBinaryArray(item, pos, vec)) {
         return false;
     }
-    for (auto ch : vec) {
-        str += ch;
-    }
-    value = str;
+    value.assign(vec.begin(), vec.end());;
     return true;
 }
 

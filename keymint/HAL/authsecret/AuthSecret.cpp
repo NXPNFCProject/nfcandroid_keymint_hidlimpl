@@ -54,7 +54,7 @@ namespace authsecret {
 static void authSecretTimerExpiryFunc(union sigval arg) {
   LOG(INFO) << StringPrintf(
       "%s: Enter. Clearing AuthSecret Approved Status !!!", __func__);
-  AuthSecret *obj = (AuthSecret *)arg.sival_ptr;
+  AuthSecret* obj = static_cast<AuthSecret*>(arg.sival_ptr);
   if (obj != nullptr)
     obj->clearAuthApprovedStatus();
 }

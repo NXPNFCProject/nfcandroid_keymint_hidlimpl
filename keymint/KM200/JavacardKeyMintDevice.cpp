@@ -166,7 +166,6 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
     Array request;
     std::unique_ptr<Item> item;
     vector<uint8_t> keyBlob;
-    std::vector<uint8_t> response;
     vector<KeyCharacteristics> keyCharacteristics;
     std::vector<uint8_t> iv;
     std::vector<uint8_t> transitKey;

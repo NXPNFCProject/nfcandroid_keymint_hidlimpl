@@ -86,16 +86,14 @@ void OmapiTransport::BinderDiedCallback(void *cookie) {
     std::shared_ptr<OmapiTransport> transport = nullptr;
     {
       std::lock_guard lock(sCookiesMutex);
-      if (auto it = sCookies.find(reinterpret_cast<uintptr_t>(cookie));
-          it != sCookies.end()) {
-        LOG(ERROR)
-            << "Received binder died with cookie: " << cookie
-            << ". OMAPI Service died, closing connection";
-        transport = it->second.lock();
+      auto it = sCookies.find(reinterpret_cast<uintptr_t>(cookie));
+      if (it != sCookies.end()) {
+          LOG(ERROR) << "Received binder died with cookie: " << cookie
+                     << ". OMAPI Service died, closing connection";
+          transport = it->second.lock();
       } else {
-        LOG(ERROR)
-            << "Received binder died with cookie: " << cookie
-            << ". OMAPI Service died, but no OmapiTransport.";
+          LOG(ERROR) << "Received binder died with cookie: " << cookie
+                     << ". OMAPI Service died, but no OmapiTransport.";
       }
     }
     if (transport) {
@@ -327,19 +325,16 @@ bool OmapiTransport::closeConnection() {
         }
     }
 #ifdef NXP_EXTNS
-    if (omapiSeService != nullptr) {
-      std::lock_guard sLock(sCookiesMutex);
-      std::lock_guard mLock(mCookieKeysMutex);
-      for (auto cookie : mCookieKeys) {
+    std::lock_guard sLock(sCookiesMutex);
+    std::lock_guard mLock(mCookieKeysMutex);
+    for (auto cookie : mCookieKeys) {
         LOG(INFO) << "unlinkToDeath on OMAPI service with cookie: " << cookie;
-        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(),
-                               mDeathRecipient.get(),
-                               reinterpret_cast<void *>(cookie));
+        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(), mDeathRecipient.get(),
+                               reinterpret_cast<void*>(cookie));
         sCookies.erase(cookie);
-      }
-      mCookieKeys.clear();
-      omapiSeService = nullptr;
     }
+    mCookieKeys.clear();
+    omapiSeService = nullptr;
     session = nullptr;
     channel = nullptr;
 #endif
@@ -360,9 +355,7 @@ bool OmapiTransport::isConnected() {
 #ifdef NXP_EXTNS
 
 void OmapiTransport::setDefaultTimeout(int timeout) {
-    if (mTimeout != timeout) {
-        mTimeout = timeout;
-    }
+    mTimeout = timeout;
 }
 
 bool OmapiTransport::internalProtectedTransmitApdu(

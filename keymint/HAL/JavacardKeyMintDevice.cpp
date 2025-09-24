@@ -175,7 +175,6 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
     cppbor::Array request;
     std::unique_ptr<Item> item;
     vector<uint8_t> keyBlob;
-    std::vector<uint8_t> response;
     vector<KeyCharacteristics> keyCharacteristics;
     std::vector<uint8_t> iv;
     std::vector<uint8_t> transitKey;
@@ -308,7 +307,6 @@ ScopedAStatus JavacardKeyMintDevice::begin(KeyPurpose purpose, const std::vector
                                            BeginResult* result) {
     card_->sendPendingEvents();
     cppbor::Array array;
-    std::vector<uint8_t> response;
     // make request
     array.add(Uint(static_cast<uint64_t>(purpose)));
     array.add(Bstr(keyBlob));
