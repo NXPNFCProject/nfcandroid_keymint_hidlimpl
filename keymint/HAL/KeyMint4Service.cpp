@@ -110,7 +110,7 @@ static void printKeyMint4Version() {
   validation |= (NXP_EN_PN557 << 11);
 
   char version[60];  // Buffer to store formatted string
-  sprintf(version, "KEY MINT 4 Version: NFC_AR_%02X_%05X_%02u.%02X.%02X_TC3",
+  sprintf(version, "KEY MINT 4 Version: NFC_AR_%02X_%05X_%02u.%02X.%02X",
           NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER, NFC_NXP_MW_VERSION_MAJ,
           NFC_NXP_MW_VERSION_MIN);
   LOG(INFO) << version;
