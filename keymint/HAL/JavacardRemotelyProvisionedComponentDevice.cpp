@@ -43,8 +43,6 @@
 #include <keymaster/cppcose/cppcose.h>
 #include <keymaster/remote_provisioning_utils.h>
 
-#include <memunreachable/memunreachable.h>
-
 namespace aidl::android::hardware::security::keymint {
 using cppbor::Array;
 using cppbor::EncodedItem;
@@ -338,13 +336,6 @@ ScopedAStatus JavacardRemotelyProvisionedComponentDevice::generateCertificateReq
                .encode();
 
     return ScopedAStatus::ok();
-}
-
-binder_status_t JavacardRemotelyProvisionedComponentDevice::dump(int /* fd */, const char** /* p */,
-                                                                 uint32_t /* q */) {
-    LOG(INFO) << "\n KeyMint-JavacardRemotelyProvisionedComponentDevice Info = \n"
-              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
-    return STATUS_OK;
 }
 
 }  // namespace aidl::android::hardware::security::keymint

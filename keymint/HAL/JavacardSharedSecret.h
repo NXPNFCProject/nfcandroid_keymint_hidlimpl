@@ -40,9 +40,6 @@ class JavacardSharedSecret : public BnSharedSecret {
     explicit JavacardSharedSecret(shared_ptr<JavacardSecureElement> card) : card_(std::move(card)) {}
     virtual ~JavacardSharedSecret() {}
 
-    // Methods from ::ndk::ICInterface follow.
-    binder_status_t dump(int fd, const char** args, uint32_t num_args) override;
-
     ScopedAStatus getSharedSecretParameters(SharedSecretParameters* params) override;
 
     ScopedAStatus computeSharedSecret(const std::vector<SharedSecretParameters>& params,

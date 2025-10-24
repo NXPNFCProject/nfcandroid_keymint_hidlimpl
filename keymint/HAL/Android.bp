@@ -120,7 +120,6 @@ cc_defaults {
         "libcrypto",
         "libcutils",
         "libjc_keymint_transport.nxp",
-        "libmemunreachable",
         "libkeymaster_messages",
         "libkeymaster_portable",
         "liblog",

@@ -23,7 +23,6 @@
 #include <android-base/logging.h>
 
 #include <KeyMintUtils.h>
-#include <memunreachable/memunreachable.h>
 
 /* 1 sec delay till OMAPI service initialized (~ 30 to 40 secs)
  * 20 retry as per transport layer retry logic.
@@ -91,10 +90,5 @@ ScopedAStatus JavacardSharedSecret::computeSharedSecret(
     }
     *secret = std::move(optSecret.value());
     return ScopedAStatus::ok();
-}
-binder_status_t JavacardSharedSecret::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
-    LOG(INFO) << "\n KeyMint-JavacardSharedSecret HAL MemoryLeak Info = \n"
-              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
-    return STATUS_OK;
 }
 }  // namespace aidl::android::hardware::security::sharedsecret

@@ -58,9 +58,6 @@ class JavacardKeyMint3Device : public BnKeyMintDevice {
                                     shared_ptr<::keymint::javacard::JavacardKeyMintDevice> device)
         : device_(device) {}
     virtual ~JavacardKeyMint3Device() {}
-    binder_status_t dump(int fd, const char** args, uint32_t num_args) {
-        return device_->dump(fd, args, num_args);
-    }
 
     ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info) {
         return device_->getHardwareInfo(info);

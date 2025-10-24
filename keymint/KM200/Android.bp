@@ -27,7 +27,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2022-2023 NXP
+// Copyright 2022-2023, 2025 NXP
 //
 
 package {
@@ -69,7 +69,6 @@ cc_library {
         "libcutils",
         "libjc_keymint_transport.nxp",
         "libbinder_ndk",
-        "libmemunreachable",
         "android.hardware.security.keymint-V2-ndk",
         "android.hardware.security.rkp-V2-ndk",
     ],

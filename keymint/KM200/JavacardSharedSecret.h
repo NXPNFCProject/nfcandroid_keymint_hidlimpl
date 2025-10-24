@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022-2023 NXP
+ *  Copyright 2022-2023, 2025 NXP
  *
  ******************************************************************************/
 #pragma once
@@ -40,9 +40,6 @@ class JavacardSharedSecret : public BnSharedSecret {
     explicit JavacardSharedSecret(shared_ptr<JavacardSecureElement> card)
         : card_(std::move(card)) {}
     virtual ~JavacardSharedSecret() {}
-
-    // Methods from ::ndk::ICInterface follow.
-    binder_status_t dump(int fd, const char** args, uint32_t num_args) override;
 
     ScopedAStatus getSharedSecretParameters(SharedSecretParameters* params) override;
 

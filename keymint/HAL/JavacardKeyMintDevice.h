@@ -70,9 +70,6 @@ class JavacardKeyMintDevice {
         : securitylevel_(SecurityLevel::STRONGBOX), card_(std::move(card)), version_(version) {}
     virtual ~JavacardKeyMintDevice() {}
 
-    // Methods from ::ndk::ICInterface follow.
-    binder_status_t dump(int fd, const char** args, uint32_t num_args);
-
     ScopedAStatus getHardwareInfo(KeyMintHardwareInfo* info);
 
     ScopedAStatus addRngEntropy(const vector<uint8_t>& data);

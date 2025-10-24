@@ -41,7 +41,6 @@
 #include <hardware/hw_auth_token.h>
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/wrapped_key.h>
-#include <memunreachable/memunreachable.h>
 
 #include "JavacardSharedSecret.h"
 
@@ -462,12 +461,6 @@ ScopedAStatus JavacardKeyMintDevice::convertStorageKeyToEphemeral(
     const std::vector<uint8_t>& /* storageKeyBlob */,
     std::vector<uint8_t>* /* ephemeralKeyBlob */) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
-}
-
-binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
-    LOG(INFO) << "\n KeyMint-JavacardKeyMintDevice HAL MemoryLeak Info = \n"
-              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
-    return STATUS_OK;
 }
 
 ScopedAStatus
