@@ -122,7 +122,12 @@ std::optional<keymaster_error_t> getErrorCode(const std::unique_ptr<cppbor::Item
     if (!optErrorVal) {
         return std::nullopt;
     }
-    return static_cast<keymaster_error_t>(0 - optErrorVal.value());
+    uint64_t errorValue = optErrorVal.value();
+
+    if (errorValue > static_cast<uint64_t>(std::numeric_limits<int32_t>::max())) {
+        return std::nullopt;
+    }
+    return static_cast<keymaster_error_t>(-static_cast<int64_t>(errorValue));
 }
 
 }  // namespace
