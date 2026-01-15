@@ -27,7 +27,7 @@
  * 20 retry as per transport layer retry logic.
  * Each retry logic takes 11~12 secs*/
 /* OMAPI may take longer to load after a factory reset. */
-#define MAX_SHARED_SECRET_RETRY_COUNT 120
+#define MAX_SHARED_SECRET_RETRY_COUNT 180
 
 namespace aidl::android::hardware::security::sharedsecret {
 using ::keymint::javacard::Instruction;
