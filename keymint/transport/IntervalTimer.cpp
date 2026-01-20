@@ -17,7 +17,7 @@
  *
  *  The original Work has been changed by NXP.
  *
- *  Copyright 2019, 2023 NXP
+ *  Copyright 2019, 2023, 2026 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -70,7 +70,13 @@ bool IntervalTimer::set(int ms, void* ptr, TIMER_FUNC cb) {
   ts.it_interval.tv_nsec = 0;
 
   stat = timer_settime(mTimerId, 0, &ts, 0);
-  if (stat == -1) LOG(ERROR) << StringPrintf("fail set timer");
+
+  if (stat == -1) {
+    LOG(ERROR) << "event=set_timer timeout=" << ms
+               << "ms failed, errno=" << errno << " (" << std::strerror(errno)
+               << ")";
+  }
+
   return stat == 0;
 }
 
@@ -101,7 +107,13 @@ bool IntervalTimer::create(void* ptr , TIMER_FUNC cb) {
   se.sigev_signo = 0;
 #endif
   mCb = cb;
+
   stat = timer_create(CLOCK_BOOTTIME_ALARM, &se, &mTimerId);
-  if (stat == -1) LOG(ERROR) << StringPrintf("fail create timer");
+
+  if (stat == -1) {
+    LOG(ERROR) << "failed to create timer: errno= " << errno << " ("
+               << std::strerror(errno) << ")";
+  }
+
   return stat == 0;
 }

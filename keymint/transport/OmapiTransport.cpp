@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2025 NXP
+ ** Copyright 2022-2026 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -279,10 +279,7 @@ bool OmapiTransport::openConnection() {
 
 bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& output) {
     std::vector<uint8_t> apdu(inData);
-#ifdef INTERVAL_TIMER
-     LOGD_OMAPI("stop the timer");
-     mTimer.kill();
-#endif
+
     if (!isConnected()) {
         // Try to initialize connection to eSE
         LOG(INFO) << "Not connected, try to initialize connection to OMAPI";
@@ -369,6 +366,10 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         isSBAppletAID = true;
     }
 
+#ifdef INTERVAL_TIMER
+    // stop last set session timer
+    mTimer.kill();
+#endif
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
         return false;
@@ -521,7 +522,6 @@ void OmapiTransport::setCryptoOperationState(uint8_t state) {
 
     LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
     if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
-        LOG(ERROR) << "Set Timer Failed !!!";
         closeChannel();
     }
 }
