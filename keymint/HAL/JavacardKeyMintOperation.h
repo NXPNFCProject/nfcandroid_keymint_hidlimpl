@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2023-2025 NXP
+ ** Copyright 2023-2026 NXP
  **
  *********************************************************************************/
 
@@ -75,6 +75,8 @@ enum class BufferingMode : int32_t {
     BUF_DES_ENCRYPT_PKCS7_BLOCK_ALIGNED = 5,  // Buffer 8 bytes.
     BUF_DES_DECRYPT_PKCS7_BLOCK_ALIGNED = 6,  // Buffer 8 bytes.
     BUF_AES_GCM_DECRYPT_BLOCK_ALIGNED = 7,    // Buffer 16 bytes.
+    BUF_AES_BLOCK_ALIGNED = 16,               // Buffer input_data_size%AES_Block_size bytes
+                                              // to make input data block aligned for ECB/CBC
 };
 
 // The is the view in the input data being processed by update/finish funcion.
