@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021,2024-2025 NXP
+ ** Copyright 2020-2021,2024-2026 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "AppletConnection"
@@ -151,6 +151,11 @@ bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   bool stat = false;
   resp.clear();
   LogicalChannelResponse logical_channel_response;
+  if (mSecureElement == nullptr) {
+      LOG(ERROR) << "Not connected to Secure element service";
+      prepareServiceSpecificErrorRepsponse(resp, ISecureElement::IOERROR);
+      return stat;
+  }
   auto status = mSecureElement->openLogicalChannel(mSelectableAid, p2, &logical_channel_response);
   if (status.isOk()) {
       mOpenChannel = logical_channel_response.channelNumber;
