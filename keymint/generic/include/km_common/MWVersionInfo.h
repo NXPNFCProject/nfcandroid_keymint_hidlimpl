@@ -32,7 +32,7 @@ constexpr bool NXP_EN_SN330U = true;
 
 // Version constants
 constexpr uint8_t NFC_NXP_MW_ANDROID_VER = 17U;
-constexpr uint8_t NFC_NXP_MW_VERSION_MAJ = 0x04;
+constexpr uint8_t NFC_NXP_MW_VERSION_MAJ = 0x06;
 constexpr uint8_t NFC_NXP_MW_VERSION_MIN = 0x00;
 constexpr uint8_t NFC_NXP_MW_CUSTOMER_ID = 0x00;
 constexpr uint8_t NFC_NXP_MW_RC_VERSION = 0x00;
@@ -69,6 +69,7 @@ const std::string getMWVersion() {
         << static_cast<int>(NFC_NXP_MW_ANDROID_VER) << '.' << std::hex << std::setw(2)
         << static_cast<int>(NFC_NXP_MW_VERSION_MAJ) << '.' << std::setw(2)
         << static_cast<int>(NFC_NXP_MW_VERSION_MIN);
+    oss << "_TC1";
     return oss.str();
 }
 
