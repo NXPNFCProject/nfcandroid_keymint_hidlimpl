@@ -302,7 +302,7 @@ bool CborConverter::getBinaryArray(const unique_ptr<Item>& item, const uint32_t 
     if (!getBinaryArray(item, pos, vec)) {
         return false;
     }
-    value.assign(vec.begin(), vec.end());;
+    value.assign(vec.begin(), vec.end());
     return true;
 }
 

@@ -23,3 +23,9 @@ package {
         "//hardware/nxp/keymint:hardware_nxp_keymint_license",
     ],
 }
+
+cc_library_headers {
+    name: "keymint_common_headers",
+    export_include_dirs: ["include"],
+    vendor_available: true,
+}

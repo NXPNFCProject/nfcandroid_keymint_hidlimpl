@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021, 2023-2025 NXP
+ ** Copyright 2020-2021, 2023-2026 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "HalToHalTransport"
@@ -83,14 +83,13 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
              return false;
          }
      }
-
 #ifdef INTERVAL_TIMER
      int timeout = mAppletConnection.getSessionTimeout();
      if(timeout == 0) {
        closeConnection(); //close immediately
      } else {
        LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-       mTimer.set(mAppletConnection.getSessionTimeout(), this, SessionTimerFunc);
+       mTimer.set(timeout, this, SessionTimerFunc);
      }
 #endif
      return status;

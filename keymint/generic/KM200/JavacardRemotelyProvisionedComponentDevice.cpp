@@ -29,15 +29,15 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2025 NXP
+ ** Copyright 2022-2026 NXP
  **
  *********************************************************************************/
 
 #define LOG_TAG "javacard.keymint.device.rkp.strongbox-impl"
-#include <JavacardRemotelyProvisionedComponentDevice.h>
-#include <android-base/logging.h>
 #include <JavacardKeyMintUtils.h>
+#include <JavacardRemotelyProvisionedComponentDevice.h>
 #include <aidl/android/hardware/security/keymint/MacedPublicKey.h>
+#include <android-base/logging.h>
 #include <keymaster/cppcose/cppcose.h>
 #include <keymaster/remote_provisioning_utils.h>
 

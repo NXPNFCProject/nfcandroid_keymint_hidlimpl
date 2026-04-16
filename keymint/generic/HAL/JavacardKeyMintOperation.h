@@ -49,6 +49,7 @@
 #define RSA_BUFFER_SIZE 256
 #define EC_BUFFER_SIZE 32
 #define MAX_CHUNK_SIZE 256
+
 namespace aidl::android::hardware::security::keymint {
 using cppbor::Array;
 using cppbor::Item;
@@ -96,7 +97,7 @@ class JavacardKeyMintOperation : public BnKeyMintOperation {
         : buffer_(vector<uint8_t>()),
           bufferingMode_(bufferingMode),
           macLength_(macLength),
-          card_(card),
+          card_(std::move(card)),
           opHandle_(opHandle) {
 #ifdef NXP_EXTNS
             card_->setOperationState(::keymint::javacard::CryptoOperationState::STARTED);

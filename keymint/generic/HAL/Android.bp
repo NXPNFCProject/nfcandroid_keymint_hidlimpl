@@ -140,6 +140,7 @@ cc_defaults {
         "-Wall",
         "-Wextra",
     ],
+    header_libs: ["keymint_common_headers"],
     shared_libs: [
         "android.se.omapi-V1-ndk",
         "libbase",

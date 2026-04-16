@@ -450,4 +450,5 @@ ScopedAStatus JavacardKeyMintDevice::convertStorageKeyToEphemeral(
     std::vector<uint8_t>* /* ephemeralKeyBlob */) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
 }
+
 }  // namespace aidl::android::hardware::security::keymint

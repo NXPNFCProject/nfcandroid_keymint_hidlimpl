@@ -107,7 +107,6 @@ bool IntervalTimer::create(void* ptr , TIMER_FUNC cb) {
   se.sigev_signo = 0;
 #endif
   mCb = cb;
-
   stat = timer_create(CLOCK_BOOTTIME_ALARM, &se, &mTimerId);
 
   if (stat == -1) {

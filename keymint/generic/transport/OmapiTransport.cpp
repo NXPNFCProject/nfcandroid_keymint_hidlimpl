@@ -320,21 +320,21 @@ bool OmapiTransport::closeConnection() {
             }
             mVSReaders.clear();
         }
-    }
 #ifdef NXP_EXTNS
-    std::lock_guard sLock(sCookiesMutex);
-    std::lock_guard mLock(mCookieKeysMutex);
-    for (auto cookie : mCookieKeys) {
-        LOG(INFO) << "unlinkToDeath on OMAPI service with cookie: " << cookie;
-        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(), mDeathRecipient.get(),
-                               reinterpret_cast<void*>(cookie));
-        sCookies.erase(cookie);
-    }
-    mCookieKeys.clear();
-    omapiSeService = nullptr;
-    session = nullptr;
-    channel = nullptr;
+        std::lock_guard sLock(sCookiesMutex);
+        std::lock_guard mLock(mCookieKeysMutex);
+        for (auto cookie : mCookieKeys) {
+            LOG(INFO) << "unlinkToDeath on OMAPI service with cookie: " << cookie;
+            AIBinder_unlinkToDeath(omapiSeService->asBinder().get(), mDeathRecipient.get(),
+                                   reinterpret_cast<void*>(cookie));
+            sCookies.erase(cookie);
+        }
+        mCookieKeys.clear();
+        omapiSeService = nullptr;
+        session = nullptr;
+        channel = nullptr;
 #endif
+    }
     return true;
 }
 
@@ -367,7 +367,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     }
 
 #ifdef INTERVAL_TIMER
-    // stop last set session timer
+    // stop the currently running session timer
     mTimer.kill();
 #endif
     if (reader == nullptr) {

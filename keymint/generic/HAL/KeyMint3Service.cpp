@@ -50,22 +50,8 @@
 #else
 #include <SocketTransport.h>
 #endif
-#include <stdint.h>
-#include <cstdio>
+#include "km_common/MWVersionInfo.h"
 #include "keymint_utils.h"
-
-#define NXP_EN_SN110U 1
-#define NXP_EN_SN100U 1
-#define NXP_EN_SN220U 1
-#define NXP_EN_PN557 1
-#define NXP_EN_PN560 1
-#define NXP_EN_SN300U 1
-#define NXP_EN_SN330U 1
-#define NFC_NXP_MW_ANDROID_VER (17U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x05) /* MW Major Version */
-#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
-#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
-#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
 
 using aidl::android::hardware::security::keymint::JavacardKeyMint3Device;
 using aidl::android::hardware::security::keymint::JavacardRemotelyProvisionedComponentDevice;
@@ -85,6 +71,7 @@ using keymint::javacard::SocketTransport;
 
 const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
 constexpr int kKeymintVersion = 300;
+constexpr static std::string kModuleName = "KEYMINT";
 // Ensures HAL and applet version consistency. This is used as P1 byte in the APDU header. This
 // value is used by the applet to confirm that the KeyMint HAL is running a compatible version of
 // Keymint. If the versions do not match, the command is not executed.
@@ -100,37 +87,23 @@ template <typename T, class... Args> std::shared_ptr<T> addService(Args&&... arg
     return ser;
 }
 
-static void printKeyMint3Version() {
-  uint32_t validation = (NXP_EN_SN100U << 13);
-  validation |= (NXP_EN_SN110U << 14);
-  validation |= (NXP_EN_SN220U << 15);
-  validation |= (NXP_EN_PN560 << 16);
-  validation |= (NXP_EN_SN300U << 17);
-  validation |= (NXP_EN_SN330U << 18);
-  validation |= (NXP_EN_PN557 << 11);
-
-  char version[60];  // Buffer to store formatted string
-  sprintf(version, "KEY MINT 3 Version: NFC_AR_%02X_%05X_%02u.%02X.%02X",
-          NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER, NFC_NXP_MW_VERSION_MAJ,
-          NFC_NXP_MW_VERSION_MIN);
-  LOG(INFO) << version;
+std::shared_ptr<ITransport> getTransportInstance() {
+#if defined OMAPI_TRANSPORT
+    return OmapiTransport::make(gStrongBoxAppletAID);
+#elif defined HAL_TO_HAL_TRANSPORT
+    return std::make_shared<HalToHalTransport>(gStrongBoxAppletAID);
+#else
+    return std::make_shared<SocketTransport>(gStrongBoxAppletAID);
+#endif
 }
 
 int main() {
     LOG(INFO) << "Starting javacard strongbox service";
-    printKeyMint3Version();
+    LOG(INFO) << nxp::keymint::getModuleMWVersion(kModuleName, std::to_string(kKeymintVersion));
     ABinderProcess_setThreadPoolMaxThreadCount(0);
     // Javacard Secure Element
-#if defined OMAPI_TRANSPORT
     std::shared_ptr<JavacardSecureElement> card =
-        std::make_shared<JavacardSecureElement>(kP1, OmapiTransport::make(gStrongBoxAppletAID));
-#elif defined HAL_TO_HAL_TRANSPORT
-    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
-        kP1, std::make_shared<HalToHalTransport>(gStrongBoxAppletAID));
-#else
-    std::shared_ptr<JavacardSecureElement> card = std::make_shared<JavacardSecureElement>(
-        kP1, std::make_shared<SocketTransport>(gStrongBoxAppletAID));
-#endif
+        std::make_shared<JavacardSecureElement>(kP1, getTransportInstance());
     std::shared_ptr<::keymint::javacard::JavacardKeyMintDevice> device =
         std::make_shared<::keymint::javacard::JavacardKeyMintDevice>(card, kKeymintVersion);
     // Add Keymint Service

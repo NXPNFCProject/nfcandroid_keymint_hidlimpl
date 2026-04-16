@@ -299,10 +299,14 @@ bool CborConverter::getMultiBinaryArray(const unique_ptr<Item>& item, const uint
 bool CborConverter::getBinaryArray(const unique_ptr<Item>& item, const uint32_t pos,
                                    string& value) {
     vector<uint8_t> vec;
+    string str;
     if (!getBinaryArray(item, pos, vec)) {
         return false;
     }
-    value.assign(vec.begin(), vec.end());;
+    for (auto ch : vec) {
+        str += ch;
+    }
+    value = str;
     return true;
 }
 

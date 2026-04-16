@@ -80,7 +80,7 @@ void AppletConnection::BinderDiedCallback(void* cookie) {
     thiz->mSecureElement = nullptr;
 }
 
-bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
+static bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
     if (current_aid.size() >= kStrongBoxAppletAID.size() &&
         std::equal(kStrongBoxAppletAID.begin(), kStrongBoxAppletAID.end(), current_aid.begin())) {
         return true;
@@ -177,28 +177,28 @@ void prepareErrorResponse(std::vector<uint8_t>& resp) {
     resp.push_back(0xFF);
 }
 bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
-  bool ret = false;
-  if (isChannelOpen()) {
-    LOG(INFO) << "channel Already opened";
-    return true;
-  }
-  if (isStrongBoxAID(mSelectableAid)) {
-      if (!mSBAccessController.isSelectAllowed()) {
-          prepareErrorResponse(resp);
-          return false;
-      }
-      uint8_t retry = 0;
-      do {
-          if (selectApplet(resp, SELECT_P2_VALUE_0) || selectApplet(resp, SELECT_P2_VALUE_2)) {
-              ret = true;
-              break;
-          }
-          LOG(INFO) << " openChannelToApplet retry after 2 secs";
-          usleep(2 * ONE_SEC);
-      } while (++retry < MAX_RETRY_COUNT);
-  } else {
-      ret = selectApplet(resp, 0x0);
-  }
+    bool ret = false;
+    if (isChannelOpen()) {
+        LOG(INFO) << "channel Already opened";
+        return true;
+    }
+    if (isStrongBoxAID(mSelectableAid)) {
+        if (!mSBAccessController.isSelectAllowed()) {
+            prepareErrorResponse(resp);
+            return false;
+        }
+        uint8_t retry = 0;
+        do {
+            if (selectApplet(resp, SELECT_P2_VALUE_0) || selectApplet(resp, SELECT_P2_VALUE_2)) {
+                ret = true;
+                break;
+            }
+            LOG(INFO) << " openChannelToApplet retry after 2 secs";
+            usleep(2 * ONE_SEC);
+        } while (++retry < MAX_RETRY_COUNT);
+    } else {
+        ret = selectApplet(resp, 0x0);
+    }
   return ret;
 }
 
@@ -217,9 +217,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
             return false;
         }
     }
-    std::vector<uint8_t> response;
-    mSecureElement->transmit(cmd, &response);
-    output = std::move(response);
+    mSecureElement->transmit(cmd, &output);
     return true;
 }
 
@@ -234,8 +232,9 @@ bool AppletConnection::close() {
         return false;
     }
     if(mOpenChannel < 0){
-        LOG(INFO) << "Channel is already closed";
+       LOG(INFO) << "Channel is already closed";
     } else {
+        LOG(INFO) << "Closing the logicalChannel: " << mOpenChannel;
         auto status = mSecureElement->closeChannel(mOpenChannel);
         if (!status.isOk()) {
             LOG(ERROR) << "closeChannel failed";
@@ -243,7 +242,6 @@ bool AppletConnection::close() {
             LOG(INFO) << "Channel closed";
         }
     }
-
     mOpenChannel = -1;
     // Release eSEHAL ownership
     mSecureElement->reset();

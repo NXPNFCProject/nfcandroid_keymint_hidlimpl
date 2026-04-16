@@ -72,6 +72,7 @@ public:
      * broken.
      */
     bool isConnected() override;
+
     /**
      * Sets Applet Aid to be selected next
      */

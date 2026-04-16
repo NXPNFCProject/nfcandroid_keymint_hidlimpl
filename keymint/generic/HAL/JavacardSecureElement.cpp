@@ -29,7 +29,7 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 *
-*  Copyright 2024-2025 NXP
+*  Copyright 2024-2026 NXP
 *
 ******************************************************************************/
 
@@ -57,7 +57,9 @@
 
 namespace keymint::javacard {
 using ::aidl::android::hardware::security::keymint::ErrorCode;
-const std::vector<uint8_t> gStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+const std::vector<uint8_t> kStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
+const std::vector<uint8_t> kStrongBoxAppletFullAid = {0xA0, 0x00, 0x00, 0x00, 0x62, 0x54, 0x53,
+                                                      0x00, 0x00, 0x00, 0x01, 0x00, 0x22};
 
 namespace {
 keymaster_error_t aidlEnumErrorCode2km(ErrorCode err) {
@@ -119,6 +121,7 @@ void JavacardSecureElement::sendPendingEvents() {
             } else {
                 LOG(INFO) << "setAdditionalAttestationInfo success";
             }
+            moduleHash.clear();
         }
 #endif
     }
@@ -172,21 +175,50 @@ keymaster_error_t JavacardSecureElement::sendData(const std::shared_ptr<ITranspo
         LOG(ERROR) << "Error in sending C-APDU";
         return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
     }
-    // Hal2Hal: Response 0xFFFF indicates Applet select failure
-    // Hal2Omapi: Considers Applet selection failure as 0x6A82
-    if (getApduStatus(response) == 0xFFFF || getApduStatus(response) == 0x6A82) {
-        LOG(WARNING) << "Trying with Full AID";
-        std::vector<uint8_t> strongBoxFullAid = {0xA0, 0x00, 0x00, 0x00, 0x62, 0x54, 0x53,
-                                                 0x00, 0x00, 0x00, 0x01, 0x00, 0x22};
-        transport->setAppletAid(strongBoxFullAid);
-        if (!transport->sendData(apdu, response)) {
-            LOG(ERROR) << "Error in sending C-APDU. Revert to partial AID";
-            transport->setAppletAid(gStrongBoxAppletAID);
+
+    const uint16_t status = getApduStatus(response);
+    const bool isSelectFailure =
+        (status == STATUS_HAL_SELECT_FAILED || status == SW_FILE_NOT_FOUND);
+    if (isSelectFailure) {
+        // Try with alternate AID.
+        std::vector<const std::vector<uint8_t>*> aidOptions = {&kStrongBoxAppletFullAid,
+                                                               &kStrongBoxAppletAID};
+        bool success = false;
+        uint16_t lastStatus = status;
+
+        for (const auto* aid : aidOptions) {
+            LOG(INFO) << "Attempting selection with AID: "
+                      << (aid == &kStrongBoxAppletFullAid ? "Full" : "Partial");
+
+            transport->setAppletAid(*aid);
+            response.clear();
+
+            if (!transport->sendData(apdu, response)) {
+                LOG(WARNING) << "Transport sendData failed for this AID.";
+                continue;
+            }
+
             if (response.size() < 2) {
-                return (KM_ERROR_SECURE_HW_COMMUNICATION_FAILED);
+                LOG(WARNING) << "Response too short to contain status word; continuing.";
+                continue;
+            }
+            lastStatus = getApduStatus(response);
+            if (lastStatus == APDU_RESP_STATUS_OK) {
+                success = true;
+                break;
+            }
+            LOG(WARNING) << "SELECT returned SW=0x" << std::hex << lastStatus
+                         << " for this AID; trying next.";
+        }
+
+        if (!success) {
+            LOG(ERROR) << "All AID selection attempts failed.";
+            if (response.size() < 2) {
+                return KM_ERROR_SECURE_HW_COMMUNICATION_FAILED;
             }
         }
     }
+
     // Response size should be greater than 2. Cbor output data followed by two
     // bytes of APDU status.
     if (getApduStatus(response) != APDU_RESP_STATUS_OK) {
@@ -223,7 +255,7 @@ std::tuple<std::unique_ptr<Item>, keymaster_error_t> JavacardSecureElement::send
 #ifdef INIT_USING_SEHAL_TRANSPORT
 bool JavacardSecureElement::initSEHal() {
     if (seHalTransport == nullptr) {
-        seHalTransport = std::make_shared<HalToHalTransport>(gStrongBoxAppletAID);
+        seHalTransport = std::make_shared<HalToHalTransport>(kStrongBoxAppletAID);
     }
     return seHalTransport->openConnection();
 }
