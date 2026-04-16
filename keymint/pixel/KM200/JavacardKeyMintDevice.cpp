@@ -29,7 +29,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2022-2023,2025 NXP
+ *  Copyright 2022-2023 NXP
  *
  ******************************************************************************/
 #define LOG_TAG "javacard.keymint.device.strongbox-impl"
@@ -46,6 +46,7 @@
 #include <keymaster/android_keymaster_messages.h>
 #include <keymaster/wrapped_key.h>
 #include <memory>
+#include <memunreachable/memunreachable.h>
 #include <regex.h>
 #include <string>
 #include <vector>
@@ -165,6 +166,7 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
     Array request;
     std::unique_ptr<Item> item;
     vector<uint8_t> keyBlob;
+    std::vector<uint8_t> response;
     vector<KeyCharacteristics> keyCharacteristics;
     std::vector<uint8_t> iv;
     std::vector<uint8_t> transitKey;
@@ -449,5 +451,11 @@ ScopedAStatus JavacardKeyMintDevice::convertStorageKeyToEphemeral(
     const std::vector<uint8_t>& /* storageKeyBlob */,
     std::vector<uint8_t>* /* ephemeralKeyBlob */) {
     return km_utils::kmError2ScopedAStatus(KM_ERROR_UNIMPLEMENTED);
+}
+
+binder_status_t JavacardKeyMintDevice::dump(int /* fd */, const char** /* p */, uint32_t /* q */) {
+    LOG(INFO) << "\n KeyMint-JavacardKeyMintDevice HAL MemoryLeak Info = \n"
+              << ::android::GetUnreachableMemoryString(true, 10000).c_str();
+    return STATUS_OK;
 }
 }  // namespace aidl::android::hardware::security::keymint

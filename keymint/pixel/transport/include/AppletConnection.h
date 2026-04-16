@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021, 2024-2025 NXP
+ ** Copyright 2020-2021,2024 NXP
  **
  *********************************************************************************/
 #ifndef __APPLETCONNECTION_H__
@@ -86,12 +86,7 @@ public:
    */
   int getSessionTimeout();
 
-  /**
-   * set applet aid to be selected next
-   */
-  bool setAppletAid(const std::vector<uint8_t>& aid);
-
-private:
+ private:
   /**
    * Select applet with given P2 parameter
    */
@@ -103,7 +98,7 @@ private:
   std::shared_ptr<SecureElementCallback> mSecureElementCallback;
   ::ndk::ScopedAIBinder_DeathRecipient mDeathRecipient;
   static void BinderDiedCallback(void* cookie);
-  std::vector<uint8_t> mSelectableAid;
+  std::vector<uint8_t> kAppletAID;
   int8_t mOpenChannel = -1;
   SBAccessController& mSBAccessController;
 };

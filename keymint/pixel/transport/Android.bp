@@ -48,7 +48,7 @@ cc_library {
         "-DNXP_EXTNS",
     ],
     export_include_dirs: [
-        "include"
+        "include",
     ],
     shared_libs: [
         "android.se.omapi-V1-ndk",

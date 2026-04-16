@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2026 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -86,14 +86,16 @@ void OmapiTransport::BinderDiedCallback(void *cookie) {
     std::shared_ptr<OmapiTransport> transport = nullptr;
     {
       std::lock_guard lock(sCookiesMutex);
-      auto it = sCookies.find(reinterpret_cast<uintptr_t>(cookie));
-      if (it != sCookies.end()) {
-          LOG(ERROR) << "Received binder died with cookie: " << cookie
-                     << ". OMAPI Service died, closing connection";
-          transport = it->second.lock();
+      if (auto it = sCookies.find(reinterpret_cast<uintptr_t>(cookie));
+          it != sCookies.end()) {
+        LOG(ERROR)
+            << "Received binder died with cookie: " << cookie
+            << ". OMAPI Service died, closing connection";
+        transport = it->second.lock();
       } else {
-          LOG(ERROR) << "Received binder died with cookie: " << cookie
-                     << ". OMAPI Service died, but no OmapiTransport.";
+        LOG(ERROR)
+            << "Received binder died with cookie: " << cookie
+            << ". OMAPI Service died, but no OmapiTransport.";
       }
     }
     if (transport) {
@@ -279,7 +281,10 @@ bool OmapiTransport::openConnection() {
 
 bool OmapiTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& output) {
     std::vector<uint8_t> apdu(inData);
-
+#ifdef INTERVAL_TIMER
+     LOGD_OMAPI("stop the timer");
+     mTimer.kill();
+#endif
     if (!isConnected()) {
         // Try to initialize connection to eSE
         LOG(INFO) << "Not connected, try to initialize connection to OMAPI";
@@ -322,16 +327,19 @@ bool OmapiTransport::closeConnection() {
         }
     }
 #ifdef NXP_EXTNS
-    std::lock_guard sLock(sCookiesMutex);
-    std::lock_guard mLock(mCookieKeysMutex);
-    for (auto cookie : mCookieKeys) {
+    if (omapiSeService != nullptr) {
+      std::lock_guard sLock(sCookiesMutex);
+      std::lock_guard mLock(mCookieKeysMutex);
+      for (auto cookie : mCookieKeys) {
         LOG(INFO) << "unlinkToDeath on OMAPI service with cookie: " << cookie;
-        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(), mDeathRecipient.get(),
-                               reinterpret_cast<void*>(cookie));
+        AIBinder_unlinkToDeath(omapiSeService->asBinder().get(),
+                               mDeathRecipient.get(),
+                               reinterpret_cast<void *>(cookie));
         sCookies.erase(cookie);
+      }
+      mCookieKeys.clear();
+      omapiSeService = nullptr;
     }
-    mCookieKeys.clear();
-    omapiSeService = nullptr;
     session = nullptr;
     channel = nullptr;
 #endif
@@ -352,7 +360,9 @@ bool OmapiTransport::isConnected() {
 #ifdef NXP_EXTNS
 
 void OmapiTransport::setDefaultTimeout(int timeout) {
-    mTimeout = timeout;
+    if (mTimeout != timeout) {
+        mTimeout = timeout;
+    }
 }
 
 bool OmapiTransport::internalProtectedTransmitApdu(
@@ -366,10 +376,6 @@ bool OmapiTransport::internalProtectedTransmitApdu(
         isSBAppletAID = true;
     }
 
-#ifdef INTERVAL_TIMER
-    // stop last set session timer
-    mTimer.kill();
-#endif
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
         return false;
@@ -401,7 +407,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     if ((channel == nullptr || (channel->isClosed(&status).isOk() && status))) {
       if (isSBAppletAID && !mSBAccessController.isOperationAllowed(apdu[APDU_INS_OFFSET])) {
         LOG(ERROR) << "Select / Command INS not allowed";
-        prepareErrorResponse(transmitResponse);
+        prepareErrorRepsponse(transmitResponse);
         return false;
       }
 
@@ -414,7 +420,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       }
       if (channel == nullptr) {
         LOG(ERROR) << "Could not open channel null";
-        prepareErrorResponse(transmitResponse);
+        prepareErrorRepsponse(transmitResponse);
         return false;
       }
 
@@ -443,7 +449,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       res = channel->transmit(apdu, &transmitResponse);
     } else {
       LOG(ERROR) << "command Ins:" << apdu[APDU_INS_OFFSET] << " not allowed";
-      prepareErrorResponse(transmitResponse);
+      prepareErrorRepsponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
     int timeout = 0x00;
@@ -479,10 +485,10 @@ bool OmapiTransport::internalProtectedTransmitApdu(
     return true;
 }
 
-void OmapiTransport::prepareErrorResponse(std::vector<uint8_t>& resp) {
-    resp.clear();
-    resp.push_back(0xFF);
-    resp.push_back(0xFF);
+void OmapiTransport::prepareErrorRepsponse(std::vector<uint8_t>& resp){
+        resp.clear();
+        resp.push_back(0xFF);
+        resp.push_back(0xFF);
 }
 
 void OmapiTransport::closeChannel() {
@@ -522,6 +528,7 @@ void OmapiTransport::setCryptoOperationState(uint8_t state) {
 
     LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
     if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
+        LOG(ERROR) << "Set Timer Failed !!!";
         closeChannel();
     }
 }

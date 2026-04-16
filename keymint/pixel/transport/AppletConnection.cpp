@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021,2024-2026 NXP
+ ** Copyright 2020-2021,2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "AppletConnection"
@@ -46,6 +46,7 @@
 
 #include <AppletConnection.h>
 #include <EseTransportUtils.h>
+#include <SignalHandler.h>
 
 using aidl::android::hardware::secure_element::BnSecureElementCallback;
 using aidl::android::hardware::secure_element::ISecureElement;
@@ -57,6 +58,7 @@ using ndk::SpAIBinder;
 
 namespace keymint::javacard {
 
+static bool isStrongBox = false; // true when linked with StrongBox HAL process
 const std::vector<uint8_t> kStrongBoxAppletAID = {0xA0, 0x00, 0x00, 0x00, 0x62};
 constexpr const char eseHalServiceName[] = "android.hardware.secure_element.ISecureElement/eSE1";
 
@@ -80,27 +82,26 @@ void AppletConnection::BinderDiedCallback(void* cookie) {
     thiz->mSecureElement = nullptr;
 }
 
-bool isStrongBoxAID(const std::vector<uint8_t>& current_aid) {
-    if (current_aid.size() >= kStrongBoxAppletAID.size() &&
-        std::equal(kStrongBoxAppletAID.begin(), kStrongBoxAppletAID.end(), current_aid.begin())) {
-        return true;
-    }
-    return false;
-}
-
 AppletConnection::AppletConnection(const std::vector<uint8_t>& aid)
-    : mSelectableAid(aid), mSBAccessController(SBAccessController::getInstance()) {
+    : kAppletAID(aid), mSBAccessController(SBAccessController::getInstance()) {
+    if (kAppletAID == kStrongBoxAppletAID) {
+        isStrongBox = true;
+    }
     mDeathRecipient =
         ::ndk::ScopedAIBinder_DeathRecipient(AIBinder_DeathRecipient_new(BinderDiedCallback));
 }
 
 bool AppletConnection::connectToSEService() {
+    if (!SignalHandler::getInstance()->isHandlerRegistered()) {
+        LOG(DEBUG) << "register signal handler";
+        SignalHandler::getInstance()->installHandler(this);
+    }
     if (mSecureElement != nullptr && mSecureElementCallback->isClientConnected()) {
         LOG(INFO) <<"Already connected";
         return true;
     }
     bool connected = false;
-    SpAIBinder binder = SpAIBinder(AServiceManager_checkService(eseHalServiceName));
+    SpAIBinder binder = SpAIBinder(AServiceManager_waitForService(eseHalServiceName));
     mSecureElement = ISecureElement::fromBinder(binder);
     if (mSecureElement == nullptr) {
         LOG(ERROR) << "Failed to connect to Secure element service";
@@ -141,22 +142,11 @@ void prepareServiceSpecificErrorRepsponse(std::vector<uint8_t>& resp, int32_t er
             resp.push_back(0xFF);
     }
 }
-
-bool AppletConnection::setAppletAid(const std::vector<uint8_t>& aid) {
-    mSelectableAid = aid;
-    return true;
-}
-
 bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   bool stat = false;
   resp.clear();
   LogicalChannelResponse logical_channel_response;
-  if (mSecureElement == nullptr) {
-      LOG(ERROR) << "Not connected to Secure element service";
-      prepareServiceSpecificErrorRepsponse(resp, ISecureElement::IOERROR);
-      return stat;
-  }
-  auto status = mSecureElement->openLogicalChannel(mSelectableAid, p2, &logical_channel_response);
+  auto status = mSecureElement->openLogicalChannel(kAppletAID, p2, &logical_channel_response);
   if (status.isOk()) {
       mOpenChannel = logical_channel_response.channelNumber;
       resp = logical_channel_response.selectResponse;
@@ -164,30 +154,30 @@ bool AppletConnection::selectApplet(std::vector<uint8_t>& resp, uint8_t p2) {
   } else {
       mOpenChannel = -1;
       resp = logical_channel_response.selectResponse;
-      LOG(ERROR) << "openLogicalChannel: Failed with resp: " << resp;
+      LOG(ERROR) << "openLogicalChannel: Failed ";
       // AIDL Hal returns empty response for failure case
       // so prepare response based on service specific errorcode
       prepareServiceSpecificErrorRepsponse(resp, status.getServiceSpecificError());
   }
   return stat;
 }
-void prepareErrorResponse(std::vector<uint8_t>& resp) {
-    resp.clear();
-    resp.push_back(0xFF);
-    resp.push_back(0xFF);
+void prepareErrorRepsponse(std::vector<uint8_t>& resp){
+        resp.clear();
+        resp.push_back(0xFF);
+        resp.push_back(0xFF);
 }
 bool AppletConnection::openChannelToApplet(std::vector<uint8_t>& resp) {
   bool ret = false;
+  uint8_t retry = 0;
   if (isChannelOpen()) {
     LOG(INFO) << "channel Already opened";
     return true;
   }
-  if (isStrongBoxAID(mSelectableAid)) {
+  if (isStrongBox) {
       if (!mSBAccessController.isSelectAllowed()) {
-          prepareErrorResponse(resp);
+          prepareErrorRepsponse(resp);
           return false;
       }
-      uint8_t retry = 0;
       do {
           if (selectApplet(resp, SELECT_P2_VALUE_0) || selectApplet(resp, SELECT_P2_VALUE_2)) {
               ret = true;
@@ -208,18 +198,22 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
     LOGD_OMAPI("Channel number: " << static_cast<int>(mOpenChannel));
 
     if (mSecureElement == nullptr) return false;
-    if (isStrongBoxAID(mSelectableAid)) {
+    if (isStrongBox) {
         if (!mSBAccessController.isOperationAllowed(CommandApdu[APDU_INS_OFFSET])) {
             std::vector<uint8_t> ins;
             ins.push_back(CommandApdu[APDU_INS_OFFSET]);
             LOG(ERROR) << "command Ins:" << ins << " not allowed";
-            prepareErrorResponse(output);
+            prepareErrorRepsponse(output);
             return false;
         }
     }
+    // block any fatal signal delivery
+    SignalHandler::getInstance()->blockSignals();
     std::vector<uint8_t> response;
     mSecureElement->transmit(cmd, &response);
-    output = std::move(response);
+    output = response;
+    // un-block signal delivery
+    SignalHandler::getInstance()->unblockSignals();
     return true;
 }
 
@@ -234,20 +228,21 @@ bool AppletConnection::close() {
         return false;
     }
     if(mOpenChannel < 0){
-        LOG(INFO) << "Channel is already closed";
-    } else {
-        auto status = mSecureElement->closeChannel(mOpenChannel);
-        if (!status.isOk()) {
-            LOG(ERROR) << "closeChannel failed";
-        } else {
-            LOG(INFO) << "Channel closed";
-        }
+       LOG(INFO) << "Channel is already closed";
+       return true;
     }
-
+    auto status = mSecureElement->closeChannel(mOpenChannel);
+    if (!status.isOk()) {
+        /*
+         * reason could be SE reset or HAL deinit triggered from other client
+         * which anyway closes all the opened channels
+         */
+        LOG(ERROR) << "closeChannel failed";
+        mOpenChannel = -1;
+        return true;
+    }
+    LOG(INFO) << "Channel closed";
     mOpenChannel = -1;
-    // Release eSEHAL ownership
-    mSecureElement->reset();
-    mSecureElement = nullptr;
     return true;
 }
 

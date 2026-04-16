@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021, 2023-2025 NXP
+ ** Copyright 2020-2021, 2023-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "HalToHalTransport"
@@ -72,18 +72,16 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
      if (!status) {
          LOG(ERROR) << " Failed to open Logical Channel ,response " << selectResponse;
          output = std::move(selectResponse);
-     } else {
-         status = mAppletConnection.transmit(cApdu, output);
-         if (output.size() < 2 ||
-             (output.size() >= 2 &&
-              (output.at(output.size() - 2) == LOGICAL_CH_NOT_SUPPORTED_SW1 &&
-               output.at(output.size() - 1) == LOGICAL_CH_NOT_SUPPORTED_SW2))) {
-             LOGD_OMAPI("transmit failed ,close the channel");
-             closeConnection();
-             return false;
-         }
+         return false;
      }
-
+    status = mAppletConnection.transmit(cApdu, output);
+    if (output.size() < 2 ||
+        (output.size() >= 2 && (output.at(output.size() - 2) == LOGICAL_CH_NOT_SUPPORTED_SW1 &&
+                                output.at(output.size() - 1) == LOGICAL_CH_NOT_SUPPORTED_SW2))) {
+        LOGD_OMAPI("transmit failed ,close the channel");
+        mAppletConnection.close();
+        return false;
+    }
 #ifdef INTERVAL_TIMER
      int timeout = mAppletConnection.getSessionTimeout();
      if(timeout == 0) {
@@ -93,7 +91,7 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
        mTimer.set(mAppletConnection.getSessionTimeout(), this, SessionTimerFunc);
      }
 #endif
-     return status;
+     return true;
 }
 
 bool HalToHalTransport::closeConnection() {
@@ -102,9 +100,5 @@ bool HalToHalTransport::closeConnection() {
 
 bool HalToHalTransport::isConnected() {
     return mAppletConnection.isServiceConnected();
-}
-
-bool HalToHalTransport::setAppletAid(const std::vector<uint8_t>& aid) {
-    return mAppletConnection.setAppletAid(aid);
 }
 } // namespace keymint::javacard

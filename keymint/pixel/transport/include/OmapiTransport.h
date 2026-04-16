@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2025 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #if defined OMAPI_TRANSPORT
@@ -163,7 +163,7 @@ public:
     bool internalProtectedTransmitApdu(
             std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> reader,
             std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse);
-    void prepareErrorResponse(std::vector<uint8_t>& resp);
+    void prepareErrorRepsponse(std::vector<uint8_t>& resp);
     bool openChannelToApplet();
 #endif
 #ifdef INTERVAL_TIMER

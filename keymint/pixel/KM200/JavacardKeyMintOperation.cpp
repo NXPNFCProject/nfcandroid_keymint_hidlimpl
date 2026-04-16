@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2025 NXP
+ ** Copyright 2022-2024 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -52,7 +52,7 @@ JavacardKeyMintOperation::~JavacardKeyMintOperation() {
 #endif
 
     if (opHandle_ != 0) {
-        JavacardKeyMintOperation::abort();
+        abort();
     }
 }
 
@@ -138,9 +138,11 @@ ScopedAStatus JavacardKeyMintOperation::abort() {
 void JavacardKeyMintOperation::blockAlign(DataView& view, uint16_t blockSize) {
     appendBufferedData(view);
     uint16_t offset = getDataViewOffset(view, blockSize);
-    if (view.buffer.empty() && !view.data.empty()) {
+    if (view.buffer.empty() && view.data.empty()) {
+        offset = 0;
+    } else if (view.buffer.empty()) {
         buffer_.insert(buffer_.end(), view.data.begin() + offset, view.data.end());
-    } else if (view.data.empty() && !view.buffer.empty()) {
+    } else if (view.data.empty()) {
         buffer_.insert(buffer_.end(), view.buffer.begin() + offset, view.buffer.end());
     } else {
         if (offset < view.buffer.size()) {
@@ -155,7 +157,7 @@ void JavacardKeyMintOperation::blockAlign(DataView& view, uint16_t blockSize) {
     view.length = view.length - buffer_.size();
 }
 
-uint16_t JavacardKeyMintOperation::getDataViewOffset(const DataView& view, uint16_t blockSize) {
+uint16_t JavacardKeyMintOperation::getDataViewOffset(DataView& view, uint16_t blockSize) {
     uint16_t offset = 0;
     uint16_t remaining = 0;
     switch(bufferingMode_) {
@@ -224,10 +226,10 @@ keymaster_error_t JavacardKeyMintOperation::bufferData(DataView& view) {
 
 // Incrementally send the request using multiple updates.
 keymaster_error_t JavacardKeyMintOperation::updateInChunks(DataView& view,
-                                                           const HardwareAuthToken& authToken,
-                                                           const TimeStampToken& timestampToken,
+                                                           HardwareAuthToken& authToken,
+                                                           TimeStampToken& timestampToken,
                                                            vector<uint8_t>* output) {
-    keymaster_error_t sendError;
+    keymaster_error_t sendError = KM_ERROR_UNKNOWN_ERROR;
     while (view.length > MAX_CHUNK_SIZE) {
         vector<uint8_t> chunk = popNextChunk(view, MAX_CHUNK_SIZE);
         sendError = sendUpdate(chunk, authToken, timestampToken, *output);
