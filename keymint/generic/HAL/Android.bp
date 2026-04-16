@@ -27,7 +27,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2022-2025 NXP
+// Copyright 2022-2024, 2026 NXP
 //
 
 package {
@@ -35,7 +35,6 @@ package {
         "//hardware/nxp/keymint:hardware_nxp_keymint_license",
     ],
 }
-
 
 cc_binary {
     name: "android.hardware.security.keymint3-service.strongbox.nxp",
@@ -77,7 +76,7 @@ cc_binary {
     ],
     shared_libs: [
         "android.hardware.security.keymint-V4-ndk",
-        "lib_android_keymaster_keymint_utils",
+        "lib_android_keymaster_keymint_utils_V4",
     ],
     srcs: [
         "JavacardKeyMint4Device.cpp",
@@ -91,7 +90,6 @@ cc_binary {
         "-DNXP_EXTNS",
     ],
 }
-
 
 cc_defaults {
     name: "libjc_keymint_defaults.nxp",
@@ -113,25 +111,25 @@ cc_defaults {
         "android.hardware.security.rkp-V3-ndk",
         "android.hardware.security.secureclock-V1-ndk",
         "android.hardware.security.sharedsecret-V1-ndk",
-        "android.hardware.secure_element-V1-ndk",
         "libbase",
         "libbinder_ndk",
         "libcppbor",
+        "libkeymaster_portable",
+        "libkeymaster_messages",
+        "libsoft_attestation_cert",
+        "liblog",
         "libcrypto",
         "libcutils",
         "libjc_keymint_transport.nxp",
-        "libkeymaster_messages",
-        "libkeymaster_portable",
-        "liblog",
-        "libsoft_attestation_cert",
+        "android.hardware.secure_element-V1-ndk",
     ],
+    export_shared_lib_headers: ["libjc_keymint_transport.nxp"],
+    export_include_dirs: ["."],
     product_variables: {
         debuggable: {
             cflags: ["-DDCHECK_ALWAYS_ON"],
         },
     },
-    export_shared_lib_headers: ["libjc_keymint_transport.nxp"],
-    export_include_dirs: ["."],
 }
 
 cc_defaults {

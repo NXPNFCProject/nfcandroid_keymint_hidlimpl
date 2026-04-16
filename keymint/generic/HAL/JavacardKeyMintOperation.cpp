@@ -202,7 +202,7 @@ keymaster_error_t JavacardKeyMintOperation::bufferData(DataView& view) {
     case BufferingMode::EC_NO_DIGEST:
         if (buffer_.size() < EC_BUFFER_SIZE) {
             buffer_.insert(buffer_.end(), view.data.begin(), view.data.end());
-            // Truncate the buffered data if greater then allowed EC buffer size.
+            // Truncate the buffered data if greater than allowed EC buffer size.
             if (buffer_.size() > EC_BUFFER_SIZE) {
                 buffer_.erase(buffer_.begin() + EC_BUFFER_SIZE, buffer_.end());
             }

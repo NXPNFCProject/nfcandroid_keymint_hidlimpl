@@ -158,7 +158,7 @@ std::optional<uint32_t> aidlEnumParam2Uint32(const KeyParameter& param) {
     case KM_TAG_BLOB_USAGE_REQUIREMENTS:
     case KM_TAG_KDF:
     default:
-        CHECK(false) << "Unknown or unused enum tag: Something is broken";
+        LOG(FATAL) << "Unknown or unused enum tag: Something is broken";
         return std::nullopt;
     }
 }
@@ -421,7 +421,8 @@ std::optional<std::vector<KeyParameter>> CborConverter::getKeyParameter(
         if (!(optValue = getUint64(pair.second))) {
             return std::nullopt;
         }
-        // If a tag with this type is present, the value is true.  If absent, false.
+        // If a tag with this type is present, the value is true.  If absent,
+        // false.
         keyParam.boolean = true;
         keyParams.push_back(kmParam2Aidl(keyParam));
         return keyParams;
