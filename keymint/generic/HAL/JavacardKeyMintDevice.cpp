@@ -54,7 +54,6 @@ namespace km_utils = ::aidl::android::hardware::security::keymint::km_utils;
 using cppbor::EncodedItem;
 using cppbor::Uint;
 using ::keymaster::AuthorizationSet;
-using ::keymaster::dup_buffer;
 using ::keymaster::KeymasterBlob;
 using ::keymaster::KeymasterKeyBlob;
 using ::keymint::javacard::Instruction;
@@ -475,10 +474,7 @@ JavacardKeyMintDevice::parseWrappedKey(const vector<uint8_t>& wrappedKeyData,
     keymaster_key_format_t kmKeyFormat;
     KeymasterBlob kmWrappedKeyDescription;
 
-    size_t keyDataLen = wrappedKeyData.size();
-
-    std::unique_ptr<uint8_t[]> keyData(dup_buffer(wrappedKeyData.data(), keyDataLen));
-    keymaster_key_blob_t keyMaterial = {keyData.get(), keyDataLen};
+    keymaster_key_blob_t keyMaterial = {wrappedKeyData.data(), wrappedKeyData.size()};
 
     keymaster_error_t error =
         parse_wrapped_key(KeymasterKeyBlob(keyMaterial), &kmIv, &kmTransitKey, &kmSecureKey, &kmTag,
