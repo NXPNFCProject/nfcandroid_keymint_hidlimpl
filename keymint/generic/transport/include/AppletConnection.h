@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021, 2024-2025 NXP
+ ** Copyright 2020-2021, 2024-2026 NXP
  **
  *********************************************************************************/
 #ifndef __APPLETCONNECTION_H__

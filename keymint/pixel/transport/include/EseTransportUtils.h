@@ -11,7 +11,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2020-2021 NXP
+ ** Copyright 2020-2021,2026 NXP
  **
  */
 #ifndef __ESE_TRANSPORT_CONFIG__
