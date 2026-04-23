@@ -69,7 +69,7 @@ const std::string getMWVersion() {
         << static_cast<int>(NFC_NXP_MW_ANDROID_VER) << '.' << std::hex << std::setw(2)
         << static_cast<int>(NFC_NXP_MW_VERSION_MAJ) << '.' << std::setw(2)
         << static_cast<int>(NFC_NXP_MW_VERSION_MIN);
-    oss << "_TC5";
+    oss << "";
     return oss.str();
 }
 
