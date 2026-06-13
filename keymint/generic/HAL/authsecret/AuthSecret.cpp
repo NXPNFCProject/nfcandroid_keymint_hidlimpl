@@ -36,6 +36,7 @@
 #define LOG_TAG "AuthSecret-Hal"
 #include "AuthSecret.h"
 #include "AuthSecretHelper.h"
+#include <chrono>
 
 using keymint::javacard::OmapiTransport;
 
@@ -128,7 +129,7 @@ AuthSecret::setPrimaryUserCredential(const std::vector<uint8_t> &in_secret) {
   LOG(INFO) << StringPrintf("%s: AuthSecret Clear status Timeout = %ld secs",
                             __func__, (long)clearAuthTimeout);
   if (clearAuthTimeout) {
-    if (!mAuthClearTimer.set(clearAuthTimeout * 1000, this,
+    if (!mAuthClearTimer.set(std::chrono::milliseconds{clearAuthTimeout * 1000}, this,
                              authSecretTimerExpiryFunc)) {
       LOG(ERROR) << StringPrintf("%s: Set Timer Failed !!!", __func__);
       clearAuthApprovedStatus();

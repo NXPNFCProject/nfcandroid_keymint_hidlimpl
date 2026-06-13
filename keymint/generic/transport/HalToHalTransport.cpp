@@ -59,8 +59,8 @@ bool HalToHalTransport::openConnection() {
 bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>& output) {
     std::vector<uint8_t> cApdu(inData);
 #ifdef INTERVAL_TIMER
-     LOGD_OMAPI("stop the timer");
-     mTimer.kill();
+    LOG(DEBUG) << "stop the timer";
+    mSessionIdleTimer.kill();
 #endif
      if (!isConnected()) {
          if (!openConnection()) {
@@ -78,19 +78,13 @@ bool HalToHalTransport::sendData(const vector<uint8_t>& inData, vector<uint8_t>&
              (output.size() >= 2 &&
               (output.at(output.size() - 2) == LOGICAL_CH_NOT_SUPPORTED_SW1 &&
                output.at(output.size() - 1) == LOGICAL_CH_NOT_SUPPORTED_SW2))) {
-             LOGD_OMAPI("transmit failed ,close the channel");
+             LOG(ERROR) << "transmit failed ,close the channel";
              closeConnection();
              return false;
          }
      }
 #ifdef INTERVAL_TIMER
-     int timeout = mAppletConnection.getSessionTimeout();
-     if(timeout == 0) {
-       closeConnection(); //close immediately
-     } else {
-       LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-       mTimer.set(timeout, this, SessionTimerFunc);
-     }
+     kickSessionIdleTimer();
 #endif
      return status;
 }
@@ -106,4 +100,34 @@ bool HalToHalTransport::isConnected() {
 bool HalToHalTransport::setAppletAid(const std::vector<uint8_t>& aid) {
     return mAppletConnection.setAppletAid(aid);
 }
+
+void HalToHalTransport::setCryptoOperationState(uint8_t state) {
+    mSBAccessController.setCryptoOperationState(state);
+    kickSessionIdleTimer();
+}
+
+void HalToHalTransport::kickSessionIdleTimer() {
+
+    std::chrono::milliseconds actual_duration =
+        mSessionTimeout.value_or(mAppletConnection.getSessionTimeout());
+
+    if (actual_duration <= std::chrono::milliseconds::zero()) {
+        LOG(INFO) << "Timeout is " << actual_duration.count()
+                  << " ms. Instantly closing connection.";
+        closeConnection();
+        return;
+    }
+
+    LOG(INFO) << "Set the timer with timeout " << actual_duration.count() << " ms";
+
+    if (!mSessionIdleTimer.set(actual_duration, this, SessionTimerFunc)) {
+        LOG(ERROR) << "Failed to arm session timer. Closing connection.";
+        closeConnection();
+    }
+}
+
+void HalToHalTransport::configureSessionTimeout(std::optional<std::chrono::milliseconds> duration) {
+    mSessionTimeout = duration;
+}
+
 } // namespace keymint::javacard

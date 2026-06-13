@@ -38,8 +38,9 @@
  */
 #define LOG_TAG "IntervalTimer"
 
-#include <android-base/stringprintf.h>
 #include <android-base/logging.h>
+#include <android-base/stringprintf.h>
+#include <chrono>
 
 #include <IntervalTimer.h>
 
@@ -50,7 +51,7 @@ IntervalTimer::IntervalTimer() {
   mCb = NULL;
 }
 
-bool IntervalTimer::set(int ms, void* ptr, TIMER_FUNC cb) {
+bool IntervalTimer::set(std::chrono::milliseconds duration, void* ptr, TIMER_FUNC cb) {
   if (mTimerId == 0) {
     if (cb == NULL) return false;
 
@@ -60,6 +61,7 @@ bool IntervalTimer::set(int ms, void* ptr, TIMER_FUNC cb) {
     kill();
     if (!create(ptr,cb)) return false;
   }
+  auto ms = duration.count();
 
   int stat = 0;
   struct itimerspec ts;

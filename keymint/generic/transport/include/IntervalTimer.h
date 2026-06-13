@@ -19,6 +19,7 @@
  *  Asynchronous interval timer.
  */
 
+#include <chrono>
 #include <time.h>
 
 class IntervalTimer {
@@ -26,7 +27,7 @@ class IntervalTimer {
   typedef void (*TIMER_FUNC)(union sigval);
   IntervalTimer();
   ~IntervalTimer();
-  bool set(int ms,void *ptr, TIMER_FUNC cb);
+  bool set(std::chrono::milliseconds duration, void *ptr, TIMER_FUNC cb);
   void kill();
   bool create(void *ptr , TIMER_FUNC);
 

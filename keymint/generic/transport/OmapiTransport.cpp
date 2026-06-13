@@ -38,6 +38,7 @@
 #include "OmapiTransport.h"
 
 #include <arpa/inet.h>
+#include <chrono>
 #include <iomanip>
 #include <map>
 #include <stdio.h>
@@ -56,7 +57,7 @@
 #define UNUSED_V(a) a=a
 #define RESP_CHANNEL_NOT_AVAILABLE 0x6881
 #ifdef NXP_EXTNS
-#define DEFAULT_SESSION_TIMEOUT_MSEC 1000
+constexpr std::chrono::milliseconds DEFAULT_SESSION_TIMEOUT_MSEC{1000};
 #endif
 
 using android::base::StringPrintf;
@@ -351,8 +352,8 @@ bool OmapiTransport::isConnected() {
 
 #ifdef NXP_EXTNS
 
-void OmapiTransport::setDefaultTimeout(int timeout) {
-    mTimeout = timeout;
+void OmapiTransport::configureSessionTimeout(std::optional<std::chrono::milliseconds> duration) {
+    mSessionTimeout = duration;
 }
 
 bool OmapiTransport::internalProtectedTransmitApdu(
@@ -368,7 +369,7 @@ bool OmapiTransport::internalProtectedTransmitApdu(
 
 #ifdef INTERVAL_TIMER
     // stop the currently running session timer
-    mTimer.kill();
+    mSessionIdleTimer.kill();
 #endif
     if (reader == nullptr) {
         LOG(ERROR) << "eSE reader is null";
@@ -446,25 +447,11 @@ bool OmapiTransport::internalProtectedTransmitApdu(
       prepareErrorResponse(transmitResponse);
     }
 #ifdef INTERVAL_TIMER
-    int timeout = 0x00;
-    if (mTimeout) {
-        timeout = mTimeout;
+    if (!res.isOk() || ((transmitResponse.size() >= 2) &&
+                        (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
+        closeChannel(); // close immediately
     } else {
-        timeout = ((kWeaverAID == mSelectableAid)
-                       ? DEFAULT_SESSION_TIMEOUT_MSEC
-                       : mSBAccessController.getSessionTimeout());
-    }
-
-    if (timeout == 0 || !res.isOk() ||
-        ((transmitResponse.size() >= 2) &&
-         (getApduStatus(transmitResponse) == RESP_CHANNEL_NOT_AVAILABLE))) {
-      closeChannel(); // close immediately
-    } else {
-      LOGD_OMAPI("Set the timer with timeout " << timeout << " ms");
-      if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
-        LOG(ERROR) << "Set Timer Failed !!!";
-        closeChannel();
-      }
+        kickSessionIdleTimer();
     }
 #else
     closeChannel();
@@ -517,11 +504,25 @@ bool OmapiTransport::openChannelToApplet() {
 
 void OmapiTransport::setCryptoOperationState(uint8_t state) {
     mSBAccessController.setCryptoOperationState(state);
+    kickSessionIdleTimer();
+}
 
-    int timeout = mSBAccessController.getSessionTimeout();
+void OmapiTransport::kickSessionIdleTimer() {
+    std::chrono::milliseconds actual_duration = mSessionTimeout.value_or(
+        (kWeaverAID == mSelectableAid) ? DEFAULT_SESSION_TIMEOUT_MSEC
+                                       : mSBAccessController.getSessionTimeout());
 
-    LOGD_OMAPI("Reset the timer with timeout " << timeout << " ms");
-    if (!mTimer.set(timeout, this, omapiSessionTimerFunc)) {
+    if (actual_duration <= std::chrono::milliseconds::zero()) {
+        LOGD_OMAPI("Timeout is " << actual_duration.count()
+                                 << " ms. Instantly closing connection.");
+        closeChannel();
+        return;
+    }
+
+    LOGD_OMAPI("Set the timer with timeout " << actual_duration.count() << " ms");
+
+    if (!mSessionIdleTimer.set(actual_duration, this, omapiSessionTimerFunc)) {
+        LOGD_OMAPI("Failed to arm session timer. Closing connection.");
         closeChannel();
     }
 }

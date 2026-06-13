@@ -38,6 +38,7 @@
 
 #include <aidl/android/hardware/secure_element/BnSecureElementCallback.h>
 #include <aidl/android/hardware/secure_element/ISecureElement.h>
+#include <chrono>
 #include <vector>
 
 #include <SBAccessController.h>
@@ -84,7 +85,7 @@ public:
   /**
    * Get session timeout value based on select response normal/update session
    */
-  int getSessionTimeout();
+  std::chrono::milliseconds getSessionTimeout();
 
   /**
    * set applet aid to be selected next

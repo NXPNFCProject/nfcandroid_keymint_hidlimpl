@@ -34,7 +34,9 @@
 **
 *********************************************************************************/
 #pragma once
+#include <chrono>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace keymint::javacard {
@@ -63,9 +65,17 @@ class ITransport {
 
     /**
      * Sets state(start/finish) of crypto operation.
-     * This is required for channel session timeout mgmt.
+     * This is required for session mgmt.
+     * session should be kept alive until either operation finishes
+     * or if the session is idle for CRYPTO_OP_SESSION_TIMEOUT
      */
-    virtual void setCryptoOperationState(uint8_t state) { (void)state; };
+    virtual void setCryptoOperationState(uint8_t state) = 0;
+
+    /**
+     * Lets client specify the session timeout value.
+     * This value overrides default values in transport
+     */
+    virtual void configureSessionTimeout(std::optional<std::chrono::milliseconds> timeoutValue) = 0;
 #endif
     /**
      * Opens connection.

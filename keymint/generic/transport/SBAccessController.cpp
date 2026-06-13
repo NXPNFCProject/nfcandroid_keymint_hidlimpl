@@ -18,6 +18,7 @@
 #define LOG_TAG "SBAccessController"
 
 #include <android-base/logging.h>
+#include <chrono>
 #include <map>
 #include <vector>
 
@@ -54,7 +55,8 @@ SBAccessController& SBAccessController::getInstance() {
     static SBAccessController sb_access_cntrl;
     return sb_access_cntrl;
 }
-void SBAccessController::startTimer(bool isStart, IntervalTimer& t, int timeout,
+void SBAccessController::startTimer(bool isStart, IntervalTimer &t,
+                                    std::chrono::milliseconds timeout,
                                     void (*timerFunc)(union sigval)) {
     t.kill();
     if (isStart) {
@@ -73,10 +75,11 @@ void SBAccessController::parseResponse(std::vector<uint8_t>& responseApdu) {
     } else {
         mIsUpdateInProgress = false;
         g_AccessAllowed = true;  // Full access
-        startTimer(false, mTimer, 0, nullptr);
+        // disarm the timer if any
+        startTimer(false, mTimer, std::chrono::milliseconds{0}, nullptr);
     }
 }
-int SBAccessController::getSessionTimeout() {
+std::chrono::milliseconds SBAccessController::getSessionTimeout() {
     if (mIsUpdateInProgress) {
         return (mBootState == BOOTSTATE::SB_EARLY_BOOT_ENDED) ? SMALLEST_SESSION_TIMEOUT
                                                               : UPGRADE_SESSION_TIMEOUT;
@@ -125,7 +128,7 @@ void SBAccessController::setCryptoOperationState(uint8_t opState) {
         if (g_NumOfCryptoOps > 0) g_NumOfCryptoOps--;
         if (g_NumOfCryptoOps == 0) {
             LOG(INFO) << "All crypto operations finished";
-            startTimer(false, mTimerCrypto, 0, nullptr);
+            startTimer(false, mTimerCrypto, std::chrono::milliseconds{0}, nullptr);
         }
     }
     LOG(INFO) << "Number of operations running: " << std::to_string(g_NumOfCryptoOps);

@@ -37,8 +37,14 @@
 #include "ITransport.h"
 #include <AppletConnection.h>
 #include <IntervalTimer.h>
+#include <SBAccessController.h>
+#include <chrono>
 #include <memory>
+#include <optional>
 #include <vector>
+
+#define APP_NOT_FOUND_SW1 0x6A
+#define APP_NOT_FOUND_SW2 0x82
 
 namespace keymint::javacard {
 using std::shared_ptr;
@@ -52,7 +58,9 @@ class HalToHalTransport : public ITransport {
 public:
     HalToHalTransport(const std::vector<uint8_t>& mAppletAID)
         : ITransport(mAppletAID),
-          mAppletConnection(mAppletAID) {}
+          mAppletConnection(mAppletAID),
+          mSBAccessController(SBAccessController::getInstance()),
+          mSessionTimeout(std::nullopt) {}
 
     /**
      * Gets the binder instance of ISEService, gets the reader corresponding to secure element, establishes a session
@@ -74,13 +82,28 @@ public:
     bool isConnected() override;
 
     /**
-     * Sets Applet Aid to be selected next
+     * Sets Aid to be selected
      */
     bool setAppletAid(const vector<uint8_t>& aid);
 
+    /**
+     * Sets state(start/finish) of crypto operation.
+     * This is required for session mgmt.
+     */
+    void setCryptoOperationState(uint8_t state) override;
+
+    /**
+     * set Session timer timeout value.
+     */
+    void configureSessionTimeout(std::optional<std::chrono::milliseconds> timeout) override;
+
   private:
     AppletConnection mAppletConnection;
-    IntervalTimer mTimer;
+    SBAccessController& mSBAccessController;
+    IntervalTimer mSessionIdleTimer;
+    std::optional<std::chrono::milliseconds> mSessionTimeout;
+
+    void kickSessionIdleTimer();
 
 };
 }  // namespace keymint::javacard

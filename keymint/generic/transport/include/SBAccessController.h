@@ -19,6 +19,7 @@
 #ifndef _SBACCESSCONTROLLER_H_
 #define _SBACCESSCONTROLLER_H_
 #include <IntervalTimer.h>
+#include <chrono>
 #include <vector>
 
 #define EARLY_BOOT_ENDED_CMD (0x35)  // INS Received from VOLD when earlyboot state ends
@@ -28,14 +29,16 @@
 #define ABORT_OPERATION_CMD (0x33)   // abort()
 
 // Session timeout values during Applet upgrade
-#define SMALLEST_SESSION_TIMEOUT (0)       // 0 msec, during actual upgrade process
-#define UPGRADE_SESSION_TIMEOUT (5 * 100)  // 500 msecs, teared scenario
+constexpr std::chrono::milliseconds SMALLEST_SESSION_TIMEOUT{0};
+constexpr std::chrono::milliseconds UPGRADE_SESSION_TIMEOUT{500};
 
-#define SB_ACCESS_BLOCK_TIMER (40 * 1000)  // 40 secs,Block access to SB applet during upgrade
+// Block access to Strongbox applet during applet upgrade for 40 secs
+constexpr std::chrono::milliseconds SB_ACCESS_BLOCK_TIMER{40 * 1000};
 
-// Other Session timeout
-#define REGULAR_SESSION_TIMEOUT (3 * 1000)     // 3 secs,default value
-#define CRYPTO_OP_SESSION_TIMEOUT (20 * 1000)  // 20 sec,for begin() operation
+constexpr std::chrono::milliseconds REGULAR_SESSION_TIMEOUT{3 * 1000};
+
+// Idle session timeout during Crypto operations
+constexpr std::chrono::milliseconds CRYPTO_OP_SESSION_TIMEOUT{20 * 1000};
 
 enum BOOTSTATE {
     SB_EARLY_BOOT = 0,
@@ -90,7 +93,7 @@ class SBAccessController {
      * Params : void
      * Returns : Session timeout value in ms
      */
-    int getSessionTimeout();
+    std::chrono::milliseconds getSessionTimeout();
     /**
      * Helper function to check if all allowed cmds
      * are received to mark mBootState as BOOT_ENDED
@@ -115,7 +118,7 @@ class SBAccessController {
 
     IntervalTimer mTimer;        // track Applet upgrade progress
     IntervalTimer mTimerCrypto;  // track crypto operations
-    void startTimer(bool isStart, IntervalTimer& t, int timeout,
+    void startTimer(bool isStart, IntervalTimer &t, std::chrono::milliseconds timeout,
                     void (*timerFunc)(union sigval arg));
 };
 }  // namespace keymint::javacard

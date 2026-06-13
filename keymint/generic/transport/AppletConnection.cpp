@@ -38,9 +38,10 @@
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <android/binder_manager.h>
-#include <signal.h>
+#include <chrono>
 #include <iomanip>
 #include <mutex>
+#include <signal.h>
 #include <string>
 #include <vector>
 
@@ -221,7 +222,7 @@ bool AppletConnection::transmit(std::vector<uint8_t>& CommandApdu , std::vector<
     return true;
 }
 
-int AppletConnection::getSessionTimeout() {
+std::chrono::milliseconds AppletConnection::getSessionTimeout() {
     return mSBAccessController.getSessionTimeout();
 }
 

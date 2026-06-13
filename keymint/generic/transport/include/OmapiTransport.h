@@ -47,10 +47,12 @@
 
 #include <map>
 
-#include <IntervalTimer.h>
-#include <memory>
-#include <vector>
 #include "ITransport.h"
+#include <IntervalTimer.h>
+#include <chrono>
+#include <memory>
+#include <optional>
+#include <vector>
 
 #include <SBAccessController.h>
 
@@ -115,14 +117,14 @@ public:
     /**
      * set default Interval timer timeout value.
      */
-    void setDefaultTimeout(int timeout);
+    void configureSessionTimeout(std::optional<std::chrono::milliseconds> timeout) override;
 #endif
 
   private:
     //AppletConnection mAppletConnection;
     SBAccessController& mSBAccessController;
-    IntervalTimer mTimer;
-    int mTimeout;
+    IntervalTimer mSessionIdleTimer;
+    std::optional<std::chrono::milliseconds> mSessionTimeout;
     std::vector<uint8_t> mSelectableAid;
     std::shared_ptr<aidl::android::se::omapi::ISecureElementService> omapiSeService;
     std::shared_ptr<aidl::android::se::omapi::ISecureElementReader> eSEReader;
@@ -137,7 +139,7 @@ public:
   OmapiTransport(const std::vector<uint8_t>& mAppletAID)
       : ITransport(mAppletAID),
         mSBAccessController(SBAccessController::getInstance()),
-        mTimeout(0),
+        mSessionTimeout(std::nullopt),
         mSelectableAid(mAppletAID),
         omapiSeService(nullptr),
         eSEReader(nullptr),
@@ -165,6 +167,7 @@ public:
             std::vector<uint8_t> apdu, std::vector<uint8_t>& transmitResponse);
     void prepareErrorResponse(std::vector<uint8_t>& resp);
     bool openChannelToApplet();
+    void kickSessionIdleTimer();
 #endif
 #ifdef INTERVAL_TIMER
     inline uint16_t getApduStatus(std::vector<uint8_t> &inputData) {
