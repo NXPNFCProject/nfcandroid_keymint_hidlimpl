@@ -51,6 +51,8 @@
 #include <vector>
 
 namespace aidl::android::hardware::security::keymint {
+using aidl::android::hardware::security::keymint::HardwareAuthenticatorType;
+using aidl::android::hardware::security::keymint::KeyParameterValue;
 using cppbor::Array;
 using cppbor::Bstr;
 using cppbor::Uint;
@@ -59,6 +61,23 @@ using ::keymaster::dup_buffer;
 using ::keymaster::KeymasterBlob;
 using ::keymaster::KeymasterKeyBlob;
 using ::keymint::javacard::Instruction;
+
+namespace {
+std::optional<vector<KeyParameter>::iterator> findTag(Tag tag, vector<KeyParameter>& params) {
+    auto it = std::find_if(params.begin(), params.end(),
+                           [tag](const auto& param) { return param.tag == tag; });
+
+    if (it != params.end()) {
+        return it;  // Found, return the iterator
+    }
+    return std::nullopt;  // Not found
+}
+
+HardwareAuthenticatorType hwAuthTypeFromUserSecureId(const KeyParameterValue& userSecureId) {
+    const auto longInteger = userSecureId.get<KeyParameterValue::longInteger>();
+    return static_cast<HardwareAuthenticatorType>(0xFFFFFFFF & longInteger);
+}
+}  // namespace
 
 ScopedAStatus JavacardKeyMintDevice::defaultHwInfo(KeyMintHardwareInfo* info) {
     info->versionNumber = 1;
@@ -186,6 +205,27 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
     if (errorCode != KM_ERROR_OK) {
         LOG(ERROR) << "Error in send begin import wrapped key in importWrappedKey.";
         return km_utils::kmError2ScopedAStatus(errorCode);
+    }
+
+    auto optionalItr = findTag(Tag::USER_SECURE_ID, authList);
+    if (optionalItr) {
+        // If both the Password and Fingerprint bits are set in UserSecureId, the password SID
+        // should be used, because biometric auth tokens contain both password and fingerprint
+        // SIDs, but password auth tokens only contain the password SID.
+        std::vector<KeyParameter>::iterator it = *optionalItr;
+        const auto hwAuthType = hwAuthTypeFromUserSecureId(it->value);
+
+        int64_t sid = 0;
+        if (hwAuthType == HardwareAuthenticatorType::ANY ||
+            hwAuthType == HardwareAuthenticatorType::PASSWORD) {
+            sid = passwordSid;
+        } else if (hwAuthType == HardwareAuthenticatorType::FINGERPRINT) {
+            sid = biometricSid;
+        }
+
+        if (sid != 0) {
+            it->value = KeyParameterValue::make<KeyParameterValue::longInteger>(sid);
+        }
     }
     // Finish the import
     std::tie(item, errorCode) = sendFinishImportWrappedKeyCmd(
