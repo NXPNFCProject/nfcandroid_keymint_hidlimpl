@@ -29,7 +29,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2024,2026 NXP
+ ** Copyright 2022-2024, 2026 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "javacard.strongbox.keymint.operation-impl"
@@ -171,6 +171,7 @@ uint16_t JavacardKeyMintOperation::getDataViewOffset(DataView& view, uint16_t bl
         break;
     case BufferingMode::BUF_DES_ENCRYPT_PKCS7_BLOCK_ALIGNED:
     case BufferingMode::BUF_AES_ENCRYPT_PKCS7_BLOCK_ALIGNED:
+    case BufferingMode::BUF_AES_BLOCK_ALIGNED:
         offset = ((view.length / blockSize)) * blockSize;
         break;
     case BufferingMode::BUF_AES_GCM_DECRYPT_BLOCK_ALIGNED:
@@ -209,6 +210,7 @@ keymaster_error_t JavacardKeyMintOperation::bufferData(DataView& view) {
         break;
     case BufferingMode::BUF_AES_ENCRYPT_PKCS7_BLOCK_ALIGNED:
     case BufferingMode::BUF_AES_DECRYPT_PKCS7_BLOCK_ALIGNED:
+    case BufferingMode::BUF_AES_BLOCK_ALIGNED:
         blockAlign(view, AES_BLOCK_SIZE);
         break;
     case BufferingMode::BUF_AES_GCM_DECRYPT_BLOCK_ALIGNED:
