@@ -223,7 +223,7 @@ ScopedAStatus JavacardKeyMintDevice::importWrappedKey(const vector<uint8_t>& wra
         std::vector<KeyParameter>::iterator it = *optionalItr;
         const auto hwAuthType = hwAuthTypeFromUserSecureId(it->value);
 
-        long sid = 0;
+        int64_t sid = 0;
         if (hwAuthType == HardwareAuthenticatorType::ANY ||
             hwAuthType == HardwareAuthenticatorType::PASSWORD) {
             sid = passwordSid;
